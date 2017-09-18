@@ -1,0 +1,3 @@
+---
+- name: start zookeeper 
+  service: name=zookeeper state=restarted enabled=yes
