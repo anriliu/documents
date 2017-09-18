@@ -43,10 +43,10 @@
   - name: send over configure  certificate and configure files
     copy: src={{src_filepath}}/nginx/{{item.src}} dest=/etc/nginx/{{item.dest}}
     with_items: 
-      - { src: 'cert.pem', dest: 'cert.pem' } 
-      - { src: 'cert.key', dest: 'cert.key' }
+#      - { src: 'cert.pem', dest: 'cert.pem' } 
+#      - { src: 'cert.key', dest: 'cert.key' }
       - { src: 'nginx.conf', dest: 'nginx.conf' }
-      - { src: 'ssl.conf', dest: 'conf.d/ssl.conf' }
+#      - { src: 'ssl.conf', dest: 'conf.d/ssl.conf' }
     tags: initproxy
   - name: create directory for web files
     file: path=/usr/share/nginx/web{{mydate}} state=directory
