@@ -1,0 +1,8 @@
+---
+##run with --tags zabbix for installing zabbix client only
+- hosts: all
+  gather_facts: yes
+  vars:
+    - ZABBIX_SERVER: 192.168.168.44
+  roles: 
+    - role: common

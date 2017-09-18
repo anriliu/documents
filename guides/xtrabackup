@@ -1,0 +1,119 @@
+xtrabackup for mysql,mariadb full and incressement backup without binary log enabled
+
+xtrabackup --user=bkpuser --password=14MY0URF4TH3R --backup  --target-dir=/data/bkps/
+–port	The port to use when connecting to the database server with TCP/IP.
+–socket	The socket to use when connecting to the local database.
+–host	The host to use when connecting to the database server with TCP/IP.
+
+The database user needs the following privileges on the tables/databases to be backed up:
+
+RELOAD and LOCK TABLES (unless the --no-lock option is specified) in order to FLUSH TABLES WITH READ LOCK and FLUSH ENGINE LOGS prior to start copying the files, and LOCK TABLES FOR BACKUP and LOCK BINLOG FOR BACKUP require this privilege when Backup Locks are used,  
+REPLICATION CLIENT in order to obtain the binary log position  
+CREATE TABLESPACE in order to import tables (see Restoring Individual Tables),  
+PROCESS in order to run SHOW ENGINE INNODB STATUS (which is mandatory), and optionally to see all threads which are running on the server (see Improved FLUSH TABLES WITH READ LOCK handling),  
+SUPER in order to start/stop the slave threads in a replication environment, use XtraDB Changed Page Tracking for Incremental Backups and for Improved FLUSH TABLES WITH READ LOCK handlin ,  
+CREATE privilege in order to create the PERCONA_SCHEMA.xtrabackup_history database and table,  
+INSERT privilege in order to add history records to the PERCONA_SCHEMA.xtrabackup_history table,  
+SELECT privilege in order to use innobackupex --incremental-history-name or innobackupex --incremental-history-uuid in order for the feature to look up the innodb_to_lsn values in the PERCONA_SCHEMA.xtrabackup_history table.  
+
+An SQL example of creating a database user with the minimum privileges required to full backups would be:  
+mysql> CREATE USER 'bkpuser'@'localhost' IDENTIFIED BY 's3cret';
+mysql> GRANT RELOAD, LOCK TABLES, PROCESS, REPLICATION CLIENT ON *.* TO
+       'bkpuser'@'localhost';
+mysql> FLUSH PRIVILEGES;
+
+The xtrabackup tool requires no special configuration on most systems. However, the storage where the xtrabackup --target-dir is located must behave properly when fsync() is called. In particular, we have noticed that NFS volumes not mounted with the sync option might not really sync the data. As a result, if you back up to an NFS volume mounted with the async option, and then try to prepare the backup from a different server that also mounts that volume, the data might appear to be corrupt. You can use the sync mount option to avoid this problem.
+
+Full Backups:
+xtrabackup --user=bkpuser --password=14MY0URF4TH3R --backup  --target-dir=/data/bkps/
+If the target directory does not exist, xtrabackup creates it. If the directory does exist and is empty, xtrabackup will succeed. xtrabackup will not overwrite existing files, it will fail with operating system error 17, file exists.
+
+
+Restore full backup:
+  1.Preparing a backup
+xtrabackup --prepare --target-dir=/data/bkps
+After you made a backup with the xtrabackup --backup option, you’ll first need to prepare it in order to restore it. Data files are not point-in-time consistent until they’ve been prepared, because they were copied at different times as the program ran, and they might have been changed while this was happening. If you try to start InnoDB with these data files, it will detect corruption and crash itself to prevent you from running on damaged data. The xtrabackup --prepare step makes the files perfectly consistent at a single instant in time, so you can run InnoDB on them.
+
+  2.Restoring a Backup
+xtrabackup --copy-back --target-dir=/data/bkps/
+which will copy the backup from target dir to the server’s datadir
+If you don’t want to use any of the above options, you can additionally use rsync or cp to restore the files.
+ rsync -avrP /data/backup/ /var/lib/mysql/
+chown -R mysql:mysql /var/lib/mysql  before start database
+
+
+
+
+Incremental Backup:
+th xtrabackup and innobackupex tools supports incremental backups, which means that they can copy only the data that has changed since the last backup.
+You can perform many incremental backups between each full backup, so you can set up a backup process such as a full backup once a week and an incremental backup every day, or full backups every day and incremental backups every hour.
+Incremental backups work because each InnoDB page contains a log sequence number, or LSN. The LSN is the system version number for the entire database. Each page’s LSN shows how recently it was changed.
+ncremental backups do not actually compare the data files to the previous backup’s data files. In fact, you can use xtrabackup --incremental-lsn to perform an incremental backup without even having the previous backup, if you know its LSN.
+
+create one full backup
+xtrabackup --backup --target-dir=/data/backups/base
+create incremental backup
+xtrabackup --backup --target-dir=/data/backups/inc1  --incremental-basedir=/data/backups/base
+
+It’s now possible to use this directory as the base for yet another incremental backup:
+xtrabackup --backup --target-dir=/data/backups/inc2 --incremental-basedir=/data/backups/inc1
+
+Preparing the Incremental Backups
+The xtrabackup --prepare step for incremental backups is not the same as for full backups. In full backups, two types of operations are performed to make the database consistent: committed transactions are replayed from the log file against the data files, and uncommitted transactions are rolled back. You must skip the rollback of uncommitted transactions when preparing an incremental backup, because transactions that were uncommitted at the time of your backup may be in progress, and it’s likely that they will be committed in the next incremental backup. You should use the xtrabackup --apply-log-only option to prevent the rollback phase.
+
+Warning:
+If you do not use the xtrabackup --apply-log-only option to prevent the rollback phase, then your incremental backups will be useless. After transactions have been rolled back, further incremental backups cannot be applied.
+
+that you have the following backups:
+/data/backups/base
+/data/backups/inc1
+/data/backups/inc2
+
+To prepare the base backup, you need to run xtrabackup --prepare as usual, but prevent the rollback phase:
+xtrabackup --prepare --apply-log-only --target-dir=/data/backups/base
+
+To apply the first incremental backup to the full backup, run the following command:
+xtrabackup --prepare --apply-log-only --target-dir=/data/backups/base --incremental-dir=/data/backups/inc1
+This applies the delta files to the files in /data/backups/base, which rolls them forward in time to the time of the incremental backup. It then applies the redo log as usual to the result. The final data is in /data/backups/base
+
+Preparing the second incremental backup is a similar process
+xtrabackup --prepare --apply-log-only --target-dir=/data/backups/base --incremental-dir=/data/backups/inc2
+Note
+xtrabackup --apply-log-only should be used when merging all incrementals except the last one. That’s why the previous line doesn’t contain the xtrabackup --apply-log-only option. Even if the xtrabackup --apply-log-only was used on the last step, backup would still be consistent but in that case server would perform the rollback phase.
+
+Compressed Backup
+Creating Compressed Backups
+xtrabackup --backup --compress --target-dir=/data/compressed/
+speed up with multi threads
+xtrabackup --backup --compress --compress-threads=4 --target-dir=/data/compressed/
+
+xtrabackup --decompress --target-dir=/data/compressed/
+Percona XtraBackup doesn’t automatically remove the compressed files. 
+In order to clean up the backup directory you should use xtrabackup --remove-original  Even if they’re not removed these files will not be copied/moved over to the datadir if xtrabackup --copy-back or xtrabackup --move-back are used
+
+When the files are uncompressed you can prepare the backup with the xtrabackup --prepare option:
+xtrabackup --prepare --target-dir=/data/compressed/
+
+Restoring the backup
+xtrabackup --copy-back --target-dir=/data/backups/
+
+
+Encrypted Backup
+To make an encrypted backup following options need to be specified (options xtrabackup --encrypt-key and xtrabackup --encrypt-key-file are mutually exclusive,just one of them needs to be provided.
+--encrypt=ALGORITHM - currently supported algorithms are: AES128, AES192 and AES256
+--encrypt-key=ENCRYPTION_KEY - proper length encryption key to use. It is not 
+--encrypt-key-file=KEYFILE - the name of a file where the raw key of the appropriate length can be read from.
+
+Encryption key can be generated with command like:
+$ openssl rand -base64 24
+
+xtrabackup --backup --target-dir=/data/backups --encrypt=AES256 --encrypt-key="GCHFLrDFVx6UAsRb88uLVbAVWbK+Yzfs"
+xtrabackup --backup --target-dir=/data/backups/ --encrypt=AES256 --encrypt-key-file=/data/backups/keyfile
+
+Optimizing the encryption process
+xtrabackup --encrypt-threads and xtrabackup --encrypt-chunk-size
+By using the xtrabackup --encrypt-threads option multiple threads can be specified to be used for encryption in parallel. Option xtrabackup --encrypt-chunk-size can be used to specify the size (in bytes) of the working encryption buffer for each encryption thread (default is 64K).
+
+
+Decrypting Encrypted Backups
+xtrabackup --decrypt=AES256 --encrypt-key="GCHFLrDFVx6UAsRb88uLVbAVWbK+Yzfs" --target-dir=/data/backups/

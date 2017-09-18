@@ -1,0 +1,10 @@
+set -e stops the execution of a script if a command or pipeline has an error - which is the opposite of the default shell behaviour, which is to ignore errors in scripts.
+It only stops execution if the last command in a pipeline has an error. There's a Bash specific option, set -o pipefail 
+like set -e -o pipefail ;true | false | true;echo $?
+
+
+exit once script try to access unset variables
+set -u      Treat unset variables and parameters other than the special parameters "@" and "*" as an error when performing parameter expansion.  If expansion  is  attempted on an unset variable or parameter, the shell prints an error message, and, if not interactive, exits with a non-zero status.
+
+set  --   If no arguments follow this option, then the positional parameters are unset.  Otherwise, the positional parameters are set to the args, even if  some  of  them  begin with a -.
+set  -   Signal  the  end of options, cause all remaining args to be assigned to the positional parameters.  The -x and -v options are turned off.  If there are no args the positional parameters remain unchanged.

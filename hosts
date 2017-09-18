@@ -1,0 +1,59 @@
+[common]
+#192.168.20.58 hostname=kong_uservice
+#192.168.20.59 hostname=mysql_uservice
+#192.168.20.60 hostname=callrate_uservice
+#192.168.20.20 
+#192.168.20.40
+#192.168.20.21
+#192.168.20.41
+#192.168.20.22
+#192.168.20.42
+#192.168.20.23
+#192.168.20.43
+#192.168.20.24
+#192.168.20.44
+#192.168.20.25
+#192.168.20.45
+#192.168.20.26
+#192.168.20.46
+#192.168.20.27
+#192.168.20.47
+#192.168.20.28
+#192.168.20.29
+#192.168.20.30
+#192.168.20.50
+#192.168.20.31
+#192.168.20.51
+#192.168.20.32
+#192.168.20.52
+#192.168.20.33
+#192.168.20.34
+#192.168.20.35
+#192.168.20.55
+#192.168.20.62 hostname=subscribe_uservice
+#192.168.20.63 hostname=mrc_uservice
+#192.168.20.64 hostname=timer_uservice
+#192.168.20.70
+#192.168.20.71
+[localnet]
+#172.27.0.[204:205] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web /data/tomcat/tomcat-smartfoundry-api /data/tomcat/smartfoundry-hosting"
+#172.27.1.[7:8] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web"
+#172.27.0.[254:255]  DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-billing"
+#172.27.0.[243:244] DIRS="/etc /root /var/log/  /data/wso2IS/wso2is-5.0.0 /data/opendj/opendj"
+#172.27.0.207 DIRS="/etc /root /var/log/ /opt/Deployments/lrs /var/lib/mysql"
+#172.27.0.[209:210]  DIRS="/etc /root /var/log/  /opt/SecureSpan/ /var/lib/mysql"
+#172.27.0.[130:131] DIRS="/etc /root /var/log/ /home/tropo_logs  /var/lib/mysql/"
+#172.27.0.[132:135] DIRS="/etc /root /var/log/ /home/tropo_logs"
+#172.27.0.140 DIRS="/etc /root /var/log/  /data3 /data/kamailio/"
+#172.27.0.142 DIRS="/etc /root /var/log/  /data3 /data/kamailio/"
+#172.27.1.[4:5] DIRS="/etc /root /var/log/ /data/kamailio"
+#172.27.0.211 DIRS="/etc /root /var/log/ /home /etc/haproxy"
+#172.27.0.242 DIRS="/etc /root /var/log/ /home /etc/haproxy"
+[ozoffice]
+192.168.128.154 timezone='Asia/Shanghai'
+[mongodb]
+192.168.168.44
+[redis]
+192.168.168.44
+[python]
+192.168.168.44

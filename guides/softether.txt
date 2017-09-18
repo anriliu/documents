@@ -1,0 +1,8 @@
+Limitations within the Linux or UNIX operating system prevent communication with IP addresses assigned to the network adapter locally bridged from the VPN side (Virtual Hub side). The cause of this restriction lies with OS's internal kernel codes rather than with the SoftEther VPN. When wishing to communicate in any form with a UNIX computer used for local bridging from the VPN side (Virtual Hub side), (for instance, when running both the VPN Server / VPN Bridge service & the HTTP Server service and wishing to grant access to the server service from the VPN side as well), prepare and connect a local bridge network adapter and physically connect both it and the existing network adapter to the same segment (as explained in 3.6 Local Bridges, it is recommended to prepare a network adapter for exclusive use in local bridging for this and other situations).
+
+you can avoid this by bridge with tap device来解决访问VPN服务器本身的问题，原理就是创建出一个tap设备并将它桥接到真实设备上.或者是添加一块独立的网卡用来bridge到virtual hub
+then add this tap device to the bridge which contains physical NIC
+
+Before you do below command you must add br0 with physical interface first 
+brctl addif br0 tap_soft
+brctl show

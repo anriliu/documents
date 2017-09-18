@@ -1,0 +1,36 @@
+---
+- hosts: 172.27.1.3
+  gather_facts: yes
+  vars:
+    - ZABBIX_SERVER: 127.0.0.1
+    - MYSQLDBS:
+         - user: am_oauth2
+           db: am_oauth2
+           passwd: xxxx
+           hosts:
+            - 'localhost'
+            - '%'
+         - user: ttlt
+           db: ttlt
+           passwd: xxxxxx
+           hosts:
+            - 'localhost'
+            - '%'
+    - MYSQL_rootpwd: xxxxx
+    - MONGO_oauthdb:
+         user: gradmin
+         db: oauth_log
+         passwd: gxxxx
+    - RABBITMQ:
+         user: jone
+         paswd: changeit
+  roles: 
+    - { role: api, tags: api ,WWW_HOSTNAME: apigw.xxapp.com,TOMCAT_NAME: hermes-api}
+    - { role: web, tags: web ,WWW_HOSTNAME: my.xxapp.com}
+    - { role: oauth, tags: oauth,TOMCAT_NAME: hermes-oauth}  
+#    - {role: nginx, tags: nginx}
+#    - {role: tomcat, tags: tomcat}
+    - {role: mysql, tags: mysql}
+    - {role: mongodb, tags: mongodb}
+    - {role: redis, tags: redis}
+    - {role: rabbitmq, tags: rabbitmq}

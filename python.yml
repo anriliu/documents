@@ -1,0 +1,5 @@
+---
+- hosts: python
+  gather_facts: no
+  roles: 
+    - {role: python}

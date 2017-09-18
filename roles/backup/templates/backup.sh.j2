@@ -1,0 +1,27 @@
+#!/bin/bash
+#backup folders
+suffix=$(date +"%Y-%m-%d").tar.gzsftp
+
+if ! test -d /backup
+   then
+     mkdir /backup
+fi
+
+backplace=$(df -x tmpfs -P |sort -k4 -n|sed -n \$p|awk '{printf $NF}')
+
+cd $backplace
+for path in {{DIRS}}
+do
+  tar -czf   ${path//\//}_$suffix  $path
+done
+ncftpput  -u {{ftpuser}} -p {{ftppass}} {{ftphost}} /array1/sfbackup/{{ansible_host}} *.gzsftp
+if [[ $? == 0 ]]
+ then
+   rm -rf *.gzsftp
+   if test -f /backup/failure
+      then
+           rm -rf /backup/failure
+    fi
+ else
+    touch /backup/failure
+fi

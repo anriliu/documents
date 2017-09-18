@@ -1,0 +1,7 @@
+---
+- hosts: web
+  gather_facts: yes
+  vars:
+    - ZABBIX_SERVER: 127.0.0.1
+  roles: 
+    - { role: web,WWW_HOSTNAME: my.xxapp.com}

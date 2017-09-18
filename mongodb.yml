@@ -1,0 +1,16 @@
+---
+- hosts: mongodb
+  gather_facts: no
+  vars:
+    - ZABBIX_SERVER: 127.0.0.1
+    - MONGO_new:
+         user: gradmin
+         db: oauth
+         passwd: gxxxxx
+         roles: dbOwner
+    - DBLOGIN:
+         user: admin
+         db: admin
+         passwd: admin
+  roles: 
+    - {role: mongodb}

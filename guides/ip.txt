@@ -1,0 +1,44 @@
+To create a bridge named br0, that have eth0 and eth1 as members:
+ip link add name br0 type bridge
+ip link set dev br0 up
+ip link set dev eth0 master br0
+ip link set dev eth1 master br0
+
+To remove an interface from the bridge:
+ip link set dev eth0 nomaster
+
+And finally, to destroy a bridge after no interface is member:
+ip link del br0
+
+
+ip link set br0 type bridge stp_state 1
+ip link help bridge
+
+Forwarding manipulation
+To manipulate other aspects of the bridge like the FDB(Forwarding Database) I suggest you to take a look at the bridge(8) command. Examples:
+Show forwarding database on br0
+bridge fdb show dev br0
+
+Disable a port(eth0) from processing BPDUs. This will make the interface filter any incoming bpdu
+bridge link set dev eth0 guard on
+
+Setting STP Cost to a port(eth1 for example):
+bridge link set dev eth1 cost 4
+
+To set root guard on eth1:
+bridge link set dev eth1 root_block on
+
+Cost is calculated using some factors, and the link speed is one of them. Using a fix cost and disabling the processing of BPDUs and enabling root_block is somehow simmilar to a guard-root feature from switches.
+Other features like vepa, veb and hairpin mode can be found on bridge link sub-command list.
+
+VLAN rules manipulation
+The vlan object from the bridge command will allow you to create ingress/egress filters on bridges.
+
+To show if there is any vlan ingress/egress filters:
+bridge vlan show
+
+To add rules to a given interface:
+bridge vlan add dev eth1 <vid, pvid, untagged, self, master>
+
+To remove rules. Use the same parameters as vlan add at the end of the command to delete a specific rule.
+bridge vlan delete dev eth1

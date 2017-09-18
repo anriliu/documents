@@ -1,0 +1,72 @@
+Init mysql database without root passwd:
+mysqld --initialize-insecure --user=mysql
+
+
+mysql reset root passwd:
+1. create init file which will be excuted while mysql starting up ,it a text file containing the password-assignment statement on a single line:
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass'; #MySQL 5.7.6 and later
+SET PASSWORD FOR 'root'@'localhost' = PASSWORD('MyNewPass');#MySQL 5.7.5 and earlier
+start mysql with init file:
+sudo -u mysql mysqld --init-file=/tmp/mysql-init &
+if not working then try to change init file content as below and restart mysql server:
+UPDATE mysql.user
+    SET authentication_string = PASSWORD('MyNewPass'), password_expired = 'N'
+    WHERE User = 'root' AND Host = 'localhost';
+FLUSH PRIVILEGES; 
+
+2.you can also do it with mysql client connection
+start mysql server with  --skip-networking and  --skip-grant-tables options:
+sudo -u mysql mysqld --skip-networking   --skip-grant-tables
+mysql
+mysql>FLUSH PRIVILEGES;
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'MyNewPass'; #MySQL 5.7.6 and later
+mysql> SET PASSWORD FOR 'root'@'localhost' = PASSWORD('MyNewPass'); #MySQL 5.7.5 and earlier
+if not working then try below sql:
+UPDATE mysql.user SET authentication_string = PASSWORD('MyNewPass')
+WHERE User = 'root' AND Host = 'localhost';
+FLUSH PRIVILEGES;
+
+mysql on hand monitoring tools innotop
+
+
+Find out locked tables
+SHOW OPEN TABLES; 
+
+Find out session lock for innodb or run innotop
+show engine innodb status;
+
+HOW VARIABLES LIKE 'validate_password%';
+SET GLOBAL  validate_password_policy='LOW';
+ALTER USER 'script'@'localhost' PASSWORD EXPIRE NEVER；
+ALTER USER 'jeffrey'@'localhost' 
+  IDENTIFIED BY 'new_password' REQUIRE SSL WITH MAX_CONNECTIONS_PER_HOUR 20;
+ALTER USER 'jeffrey'@'localhost'
+  IDENTIFIED WITH mysql_native_password
+             BY 'mypass' PASSWORD EXPIRE INTERVAL 180 DAY;
+ALTER USER USER() 
+IDENTIFIED BY 'auth_string';This syntax enables changing your own password without naming your account literally.
+
+add below to my.cnf:
+default_password_lifetime=0
+validate_password_policy='LOW'; #if you install validate_password plugin by INSTALL PLUGIN validate_password SONAME 'validate_password.so';
+
+
+add new user  
+CREATE USER 'finley'@'localhost' IDENTIFIED BY 'some_pass';  
+GRANT ALL PRIVILEGES ON *.* TO 'finley'@'localhost'    WITH GRANT OPTION;  
+
+delete user  
+DROP USER 'jeffrey'@'localhost';  
+
+list user privileges  
+SHOW GRANTS FOR 'admin'@'localhost';
+
+The MySQL server maintains many status variables that provide information about its operation. 
+SHOW [GLOBAL | SESSION] STATUS: 
+SUM(Com_xxx) + Qcache_hits
+= Questions + statements executed within stored programs
+= Queries
+
+
+zabbix monitor slave status(if the returned value is less than 2 then there is a slave error there)
+UserParameter=mysql.slave,HOME=/var/lib/zabbix mysql -e 'SHOW SLAVE STATUS\G' | egrep '(Slave_IO_Running|Slave_SQL_Running):' | awk -F: 'BEGIN{a=0}{if (($$1 ~ /.*Slave_IO_Running/ && $$2 ~ /Yes.*/) || ($$1 ~ /.*Slave_SQL_Running/ && $$2 ~ /Yes.*/)){a++;}}END{print a;}'

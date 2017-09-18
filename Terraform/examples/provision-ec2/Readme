@@ -1,0 +1,7 @@
+the provisioners let you upload files, run shell scripts, or install and trigger other software like configuration management tools, etc.
+Provisioners are only run when a resource is created,They are not a replacement for configuration management and changing the software of an already-running server, and are instead just meant as a way to bootstrap a server
+
+If a resource successfully creates but fails during provisioning, Terraform will error and mark the resource as "tainted." A resource that is tainted has been physically created, but can't be considered safe to use since provisioning failed.
+When you generate your next execution plan, Terraform will not attempt to restart provisioning on the same resource because it isn't guaranteed to be safe. Instead, Terraform will remove any tainted resources and create new resources, attempting to provision them again after creation.
+
+Provisioners can also be defined that run only during a destroy operation

@@ -1,0 +1,239 @@
+Making Backups by Copying Table Files
+For storage engines that represent each table using its own files, tables can be backed up by copying those files. For example, MyISAM tables are stored as files, so it is easy to do a backup by copying files (*.frm, *.MYD, and *.MYI files). To get a consistent backup, stop the server or lock and flush the relevant tables:
+FLUSH TABLES tbl_list WITH READ LOCK;
+
+Making Delimited-Text File Backups
+To create a text file containing a table's data, you can use SELECT * INTO OUTFILE 'file_name' FROM tbl_name. 
+
+Recovering Corrupt Tables
+If you have to restore MyISAM tables that have become corrupt, try to recover them using REPAIR TABLE or myisamchk -r first. 
+
+mysqldump for InnoDB engine master-slave db online  backup
+mysqldump --skip-lock-tables --single-transaction --flush-logs --master-data=2 --databases hzx --add-drop-database  > ~/dump.sql
+--single-transaction
+This option sets the transaction isolation mode to REPEATABLE READ and sends a START TRANSACTION SQL statement to the server before dumping data
+While a --single-transaction dump is in process, to ensure a valid dump file (correct table contents and binary log coordinates), no other connection should use the following statements: ALTER TABLE, CREATE TABLE, DROP TABLE, RENAME TABLE, TRUNCATE TABLE
+A consistent read is not isolated from those statements, so use of them on a table to be dumped can cause the SELECT that is performed by mysqldump to retrieve the table contents to obtain incorrect contents or fail.
+The --single-transaction option and the --lock-tables option are mutually exclusive because LOCK TABLES causes any pending transactions to be committed implicitly.
+
+
+--master-data
+dump a master replication server to produce a dump file that can be used to set up another server as a slave of the master
+It causes the dump output to include a CHANGE MASTER TO statement that indicates the binary log coordinates (file name and position) of the dumped server. These are the master server coordinates from which the slave should start replicating after you load the dump file into the slave.
+If the option value is 2, the CHANGE MASTER TO statement is written as an SQL comment, and thus is informative only;
+It is also possible to set up a slave by dumping an existing slave of the master, using the --dump-slave option
+
+--add-drop-database
+Write a DROP DATABASE statement before each CREATE DATABASE statement. This option is typically used in conjunction with the --all-databases or --databases option because no CREATE DATABASE statements are written unless one of those options is specified.
+
+--add-drop-table
+Write a DROP TABLE statement before each CREATE TABLE statement.
+
+
+--flush-privileges
+Add a FLUSH PRIVILEGES statement to the dump output after dumping the mysql database.
+
+--flush-logs, -F
+Flush the MySQL server log files before starting the dump. This option requires the RELOAD privilege. If you use this option in combination with the --all-databases option, the logs are flushed for each database dumped. The exception is when using --lock-all-tables, --master-data, or --single-transaction: In this case, the logs are flushed only once, corresponding to the moment that all tables are locked by FLUSH TABLES WITH READ LOCK. If you want your dump and the log flush to happen at exactly the same moment, you should use --flush-logs together with --lock-all-tables, --master-data, or --single-transaction.
+
+
+--opt
+This option, enabled by default, is shorthand for the combination of --add-drop-table --add-locks --create-options --disable-keys --extended-insert --lock-tables --quick --set-charset. It gives a fast dump operation and produces a dump file that can be reloaded into a MySQL server quickly.
+
+Restrictions
+mysqldump does not dump the INFORMATION_SCHEMA, performance_schema, or (as of MySQL 5.7.8) sys schema by default. To dump any of these, name them explicitly on the command line. You can also name them with the --databases option. For INFORMATION_SCHEMA and performance_schema, also use the --skip-lock-tables option. 
+mysqldump does not dump the NDB Cluster ndbinfo information database.
+mysqldump includes statements to recreate the general_log and slow_query_log tables for dumps of the mysql database. Log table contents are not dumped.
+
+
+better to run mysql> source dump.sql than mysql <dump.sql
+
+
+Making Incremental Backups by Enabling the Binary Log
+MySQL supports incremental backups: You must start the server with the --log-bin option to enable binary logging
+
+At the moment you want to make an incremental backup (containing all changes that happened since the last full or incremental backup), you should rotate the binary log by using FLUSH LOGS. This done, you need to copy to the backup location all binary logs which range from the one of the moment of the last full or incremental backup to the last but one. These binary logs are the incremental backup; 
+
+binlogfiles_array=($(ls -d /var/lib/mysql/mysql-bin.??????))
+# pop the last binlog file from array, since it's usually being used
+unset binlogfiles_array[${#binlogfiles_array[@]}-1]
+# get binlogfiles count
+binlogfiles_count=${#binlogfiles_array[@]}
+
+sava all files into one
+binlogfiles=$( IFS=$'\n'; echo "${binlogfiles_array[*]}" )
+mysqlbinlog $binlogfiles > $HOURLY_FILENAME
+# we don't need old binary logs after creating a full binary log backup and it saves space also
+mysql $MYSQL_CREDENTIALS -e "PURGE BINARY LOGS BEFORE NOW();"
+
+
+The next time you do a full backup, you should also rotate the binary log using FLUSH LOGS or mysqldump --flush-logs. 
+mysqldump -ubackup -p  --opt --flush-logs --master-data=2 dbname >dump.sql
+
+
+
+Following mysqldump import example for InnoDB tables is at least 100x faster than previous examples.
+1. mysqldump --opt --user=username --password database > dumbfile.sql
+2. Edit the dump file and put these lines at the beginning:
+SET AUTOCOMMIT = 0;
+SET FOREIGN_KEY_CHECKS=0;
+
+3. Put these lines at the end:
+SET FOREIGN_KEY_CHECKS = 1;
+COMMIT;
+SET AUTOCOMMIT = 1;
+
+4. mysql --user=username --password database < dumpfile.sql
+
+
+clean up old binary logs:
+PURGE BINARY LOGS BEFORE NOW();
+
+
+Recovery Using the Binary Log
+Processing binary logs this way using different connections to the server causes problems if the first log file contains a CREATE TEMPORARY TABLE statement and the second log contains a statement that uses the temporary table. When the first mysql process terminates, the server drops the temporary table. When the second mysql process attempts to use the table, the server reports “unknown table.”
+To avoid problems like this, use a single connection to execute the contents of all binary logs that you want to process. Here is one way to do so:
+mysqlbinlog binlog.000001 binlog.000002 | mysql -u root -p
+or
+mysqlbinlog binlog.000001 >  /tmp/statements.sql
+mysqlbinlog binlog.000002 >> /tmp/statements.sql
+
+When writing to a dump file while reading back from a binary log containing GTIDs (see Section 16.1.3, “Replication with Global Transaction Identifiers”), use the --skip-gtids option with mysqlbinlog
+
+Point-in-Time Recovery Using Event Times
+mysqlbinlog --stop-datetime="2005-04-20 9:59:59"        /var/log/mysql/bin.123456
+mysqlbinlog --start-datetime="2005-04-20 10:01:00"  /var/log/mysql/bin.123456
+
+ Point-in-Time Recovery Using Event Positions
+mysqlbinlog --stop-position=368312 /var/log/mysql/bin.123456
+mysqlbinlog --start-position=368315 /var/log/mysql/bin.123456 
+
+
+
+
+a script to do mysql full and incremental backup by mysqlbinlog
+
+#!/bin/bash
+set -e
+
+SCRIPT_NAME=db_binlog_s3sync
+MYSQL_CREDENTIALS="--user=$MYSQL_USER --password=$MYSQL_PASSWORD --host=$MYSQL_HOST --port=$MYSQL_PORT"
+
+TODAY=`date +%Y%m%d`
+TODAY_FILENAME="$TODAY.sql"
+TODAY_COMPRESSED_FILENAME="$TODAY_FILENAME.tar.gz"
+
+if [ ! -z "$1" ]
+then
+  # daily
+  if [ "$1" == "daily" ]
+  then
+    # check to see if daily file already exists on S3
+    FILE_EXISTS=`aws s3 ls $AWS_S3BUCKET_PATH/daily/$TODAY_COMPRESSED_FILENAME | wc -l  | tr -d " "`
+    if [ "$FILE_EXISTS" == "1" ]
+    then
+      echo "[$SCRIPT_NAME] Daily file found."
+    else
+      mysqldump $MYSQL_CREDENTIALS --single-transaction --all-databases --flush-logs --master-data=2 > "$TODAY_FILENAME"
+      tar -zcvf "$TODAY_COMPRESSED_FILENAME" "$TODAY_FILENAME"
+      aws s3 --region $AWS_DEFAULT_REGION cp "$TODAY_COMPRESSED_FILENAME" "$AWS_S3BUCKET_PATH/daily/$TODAY_COMPRESSED_FILENAME"
+      rm "$TODAY_COMPRESSED_FILENAME" "$TODAY_FILENAME"
+      # we don't need old binary logs after creating a full backup
+      mysql $MYSQL_CREDENTIALS -e "PURGE BINARY LOGS BEFORE NOW();"
+      echo "[$SCRIPT_NAME] Binary logs flushed and old logs purged."
+      echo "[$SCRIPT_NAME] Daily backup file ($TODAY_COMPRESSED_FILENAME) uploaded."
+    fi
+  elif [ "$1" == "hourly" ]
+  then
+    HOURLY=`date +%Y%m%d-%H%M%S`
+    HOURLY_FILENAME="$HOURLY.sql"
+    HOURLY_COMPRESSED_FILENAME="$HOURLY_FILENAME.tar.gz"
+
+    # check to see if daily file already exists on S3
+    FILE_EXISTS=`aws s3 ls $AWS_S3BUCKET_PATH/daily/$TODAY_COMPRESSED_FILENAME | wc -l  | tr -d " "`
+    if [ "$FILE_EXISTS" == "1" ]
+    # we found daily backup file, let's proceed.
+    then
+      # flush logs to lock the current bin log and start new
+      mysqladmin $MYSQL_CREDENTIALS flush-logs
+      # binlogfiles=`ls -d /var/lib/mysql/mysql-bin.?????? | sed -e 's/\n/ /g'`
+      # should make the binlog path & filename in a var
+      binlogfiles_array=($(ls -d /var/lib/mysql/mysql-bin.??????))
+      # pop the last binlog file from array, since it's usually being used
+      unset binlogfiles_array[${#binlogfiles_array[@]}-1]
+      # get binlogfiles count
+      binlogfiles_count=${#binlogfiles_array[@]}
+
+      if [ "$binlogfiles_count" -ge 1 ]
+      then
+        # make this into a one liner
+        binlogfiles=$( IFS=$'\n'; echo "${binlogfiles_array[*]}" )
+        mysqlbinlog $binlogfiles > $HOURLY_FILENAME
+        tar -zcvf "$HOURLY_COMPRESSED_FILENAME" "$HOURLY_FILENAME"
+        aws s3 --region $AWS_DEFAULT_REGION cp "$HOURLY_COMPRESSED_FILENAME" "$AWS_S3BUCKET_PATH/hourly/$HOURLY_COMPRESSED_FILENAME"
+        rm "$HOURLY_COMPRESSED_FILENAME" "$HOURLY_FILENAME"
+        # we don't need old binary logs after creating a full backup
+        mysql $MYSQL_CREDENTIALS -e "PURGE BINARY LOGS BEFORE NOW();"
+
+        echo "[$SCRIPT_NAME] Binary logs flushed and old logs purged."
+        echo "[$SCRIPT_NAME] Hourly backup file ($HOURLY_COMPRESSED_FILENAME) uploaded."
+      else
+        echo "[$SCRIPT_NAME] Binlog files not found."
+      fi
+    else
+      echo "[$SCRIPT_NAME] Daily dump file not found"
+    fi
+  fi
+
+fi
+
+
+
+
+
+
+
+
+myone
+#!/bin/bash
+cd /home/allen
+HOUR=$(date +%Y%m%d%H)
+
+fullbackup(){
+mysqldump -udatabackup -p'd!TAu)3A#'   --skip-lock-tables --single-transaction --flush-logs --master-data=2 --databases hzx --add-drop-database >hzx_$HOUR.sql
+if [[ $? -eq 0 ]];then
+  gzip -f hzx_$HOUR.sql
+  touch /tmp/mysqlbackup_ok
+else
+  rm -rf /tmp/mysqlbackup_ok
+fi
+}
+#rsync -av /var/log/mysql_bin/  allen@172.18.91.139:~/mysql_bin/ >> /home/allen/rsync.log  2>&1 
+
+#incremental backup
+increbackup(){
+mysql -udatabackup -p'd!TAu)3A#' -e 'FLUSH LOGS;'
+if [[ $? -eq 0 ]];then
+  touch /tmp/mysqlbackup_ok
+else
+  rm -rf /tmp/mysqlbackup_ok
+fi
+#get all binary log files
+binlogfiles_array=($(ls -drt /var/log/mysql_bin/mysql_bin.??????))
+# pop the last binlog file from array, since it's usually being used
+unset binlogfiles_array[${#binlogfiles_array[@]}-1]
+# get binlogfiles count
+#binlogfiles_count=${#binlogfiles_array[@]}
+binlogfiles=$(echo "${binlogfiles_array[*]}" )
+tar -czf binlog_$HOUR.tar.gz $binlogfiles
+}
+
+case "$1" in
+ full)
+    fullbackup;;
+ increase)
+    increbackup;;
+ *) 
+ echo $"Usage: $0 {full|increase}"
+ exit 2  
+esac

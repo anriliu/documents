@@ -1,0 +1,7 @@
+---
+- hosts:oauth 
+  gather_facts: yes
+  vars:
+    - ZABBIX_SERVER: 127.0.0.1
+  roles: 
+    - { role: oauth,TOMCAT_NAME: hermes-oauth}  

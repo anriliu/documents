@@ -1,0 +1,191 @@
+---
+- hosts: all
+  gather_facts: no
+  pre_tasks:
+  - name: check out the latest api file name
+    local_action: shell cd {{src_filepath}}/api&&ls -1t hzx-api-*.jar|head -1
+    register: apiname
+    tags: initapi,updateapi
+  - debug:  msg=" install api to {{ apiname.stdout }}"
+    tags: initapi,updateapi
+  - name: check out the latest backend file name
+    local_action: shell cd {{src_filepath}}/backend&&ls -1t backstage*.jar|head -1
+    register: backendname
+    tags: initbackend,updatebackend
+  - debug:  msg="install backend to {{ backendname.stdout }}"
+    tags: initbackend,updatebackend
+  tasks:
+  - name: 'check parm is null or invalid' 
+    fail: msg="Please remember to add tags"
+    when: "settags is not defined"
+    tags: always 
+  - set_fact: mydate="{{lookup('pipe','date +%Y%m%d%H%M%S')}}"
+    tags: always
+  - name: create directory for backup and copy api file
+    file: path=/opt/api{{mydate}} state=directory
+    tags: initapi,updateapi
+  - name: create directory for backup and copy backend file
+    file: path=/opt/backend{{mydate}} state=directory
+    tags: initbackend,updatebackend
+  - name: create directory for backup and copy db file
+    file: path=/opt/db{{mydate}} state=directory
+    tags: initdb,updatedb
+  - name: install epel repo
+    yum:  name={{item}}
+    with_items:
+      - epel-release
+    tags: initproxy
+  - name: install nginx
+    yum:  name={{item}}
+    with_items:
+      - nginx
+    tags: initproxy   
+  - name: send over configure  certificate and configure files
+    copy: src={{src_filepath}}/nginx/{{item.src}} dest=/etc/nginx/{{item.dest}}
+    with_items: 
+      - { src: 'cert.pem', dest: 'cert.pem' } 
+      - { src: 'cert.key', dest: 'cert.key' }
+      - { src: 'nginx.conf', dest: 'nginx.conf' }
+      - { src: 'ssl.conf', dest: 'conf.d/ssl.conf' }
+    tags: initproxy
+  - name: create directory for web files
+    file: path=/usr/share/nginx/web{{mydate}} state=directory
+    tags: initproxy,updateweb
+  - name: send over web files
+    unarchive: src={{src_filepath}}/nginx/hrx.tar.gz dest=/usr/share/nginx/web{{mydate}}
+    tags: initproxy,updateweb
+  - name: copy nginx config file
+    template: src={{src_filepath}}/nginx/default.j2 dest=/etc/nginx/conf.d/default.conf
+    tags: initproxy
+  - name: create soft link for web file
+    file: src=/usr/share/nginx/web{{mydate}}/hrx  dest=/usr/share/nginx/hrx  state=link force=yes
+    tags: initproxy,updateweb
+    notify:
+     - restart nginx service
+  - name: copy over update api jar file
+    copy: src={{src_filepath}}/api/{{ apiname.stdout }} dest=/opt/api{{mydate}}  backup=yes
+    tags: updateapi
+  - name: create symbolic link  for monitoring
+    tags: initapi,updateapi
+    file: src=/opt/api{{mydate}}  state=link dest=/opt/mnapi force=yes
+  - name: create symbolic link  to unify name 
+    tags: updateapi
+    file: src=/opt/api{{mydate}}/{{ apiname.stdout }}  state=link dest=/opt/api{{mydate}}/{{api_file}}
+    notify:
+      - stop api
+      - start api
+      - wait for stopping
+      - wait for starting
+  - name: copy over api jar file
+    copy: src={{src_filepath}}/api/{{ apiname.stdout }}  dest=/opt/api{{mydate}}  backup=yes
+    tags: initapi
+  - name: create symbolic to unify name
+    file: src=/opt/api{{mydate}}/{{ apiname.stdout }}  state=link dest=/opt/api{{mydate}}/{{api_file}}
+    tags: initapi
+    notify:
+      - start api
+      - wait for starting 
+  - name: create symbolic link  for monitoring
+    tags: initbackend,updatebackend
+    file: src=/opt/backend{{mydate}}  state=link dest=/opt/mnbackend force=yes
+  - name: copy over backend jar file
+    copy: src={{src_filepath}}/backend/{{backendname.stdout}}  dest=/opt/backend{{mydate}}  backup=yes
+    tags: initbackend
+  - name: create soft link for backend file
+    file: src=/opt/backend{{mydate}}/{{backendname.stdout}}  dest=/opt/backend{{mydate}}/{{backend_file}}  state=link
+    tags: initbackend
+    notify:
+      - start backend
+      - wait for starting backend
+  - name: copy over update backend jar file
+    copy: src={{src_filepath}}/backend/{{backendname.stdout}}  dest=/opt/backend{{mydate}}  backup=yes
+    tags: updatebackend
+  - name: create soft link for backend file
+    tags: updatebackend
+    file: src=/opt/backend{{mydate}}/{{backendname.stdout}}  dest=/opt/backend{{mydate}}/{{backend_file}}  state=link
+    notify:
+      - stop backend
+      - start backend
+      - wait for stopping backend
+      - wait for starting backend
+  - name: install python mysqldb module
+    yum: name=MySQL-python 
+    tags: initdb,updatedb
+  - name: copy over db init file
+    copy: src={{src_filepath}}/mysql/{{item}} dest=/opt/db{{mydate}} backup=yes
+    tags: initdb
+    with_items: "{{db_initfiles}}"
+  - name: copy over db increasement file
+    copy: src={{src_filepath}}/mysql/{{item}} dest=/opt/db{{mydate}} backup=yes
+    tags: updatedb
+    with_items: "{{db_updatefiles}}"
+  - name: init db
+    mysql_db: encoding=utf8 collation=utf8_general_ci login_host={{mysql_host}} login_password={{mysql_pass}} login_user={{mysql_user}} name={{mysql_db}} state=import target=/opt/db{{mydate}}/{{item}}
+    with_items: "{{db_initfiles}}"
+    tags: initdb
+  - name: block api port access
+    iptables:
+       destination_port: "{{item}}"
+       chain: INPUT
+       jump: DROP
+       protocol: tcp
+    tags: updatedb
+    with_items: "{{service_port}}"
+  - name: backup db
+    mysql_db: single_transaction=true encoding=utf8 collation=utf8_general_ci login_password={{mysql_pass}} login_user={{mysql_user}} name={{mysql_db}} state=dump target=/opt/db{{mydate}}/{{mysql_db}}_bk.sql.gz
+    tags: updatedb
+  - name: update db
+    mysql_db: encoding=utf8 collation=utf8_general_ci login_host={{mysql_host}} login_password={{mysql_pass}} login_user={{mysql_user}} name={{mysql_db}} state=import target=/opt/db{{mydate}}/{{item}}
+    with_items: "{{db_updatefiles}}"
+    tags: updatedb    
+  - name: allow api port access
+    iptables:
+       destination_port: "{{item}}"
+       chain: INPUT
+       jump: DROP
+       protocol: tcp
+       state: absent
+    with_items: "{{service_port}}"
+    tags: updatedb
+  - name: copy jdk installation file
+    copy: src={{src_filepath}}/{{jdk_file}} dest=/opt/
+    tags: initapi
+  - name: install oracle jdk8
+    yum: name=/opt/{{jdk_file}} state=present
+    tags: initapi
+  handlers:
+  - name: stop api
+    shell: pkill -f server.port={{item}}
+    with_items: "{{service_port}}"
+    ignore_errors: yes
+  - name: wait for stopping
+    wait_for: port={{item}} state=stopped  timeout=100
+    with_items: "{{service_port}}"
+  - name: stop backend
+    shell: pkill -f server.port={{item}}
+    ignore_errors: yes
+    with_items: "{{service_port_backend}}"
+  - name: wait for stopping backend
+    wait_for: port={{item}} state=stopped timeout=100
+    with_items: "{{service_port_backend}}"
+  - name: start api
+    shell: nohup java -jar /opt/api{{mydate}}/{{api_file }} --server.port={{item}} {{api_option}} &
+    args: 
+       chdir: /opt/api{{mydate}}/
+       executable: /bin/bash
+    with_items: "{{service_port}}"
+  - name: start backend
+    shell: nohup java -jar /opt/backend{{mydate}}/{{backend_file}}  --server.port={{item}} {{backend_option}} &
+    args:
+       chdir: /opt/backend{{mydate}}/
+       executable: /bin/bash
+    with_items: "{{service_port_backend}}"
+  - name: wait for starting
+    wait_for: port={{item}} state=started delay=10 timeout=120
+    with_items: "{{service_port}}"
+  - name: wait for starting backend
+    wait_for: port={{item}} state=started delay=10 timeout=100
+    with_items: "{{service_port_backend}}"
+  - name: restart nginx service
+    service: name=nginx enabled=yes state=restarted 
+...

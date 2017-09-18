@@ -1,0 +1,9 @@
+---
+- name: download activemq-5.15 file
+  unarchive:
+    src: http://apache.claz.org//activemq/5.15.0/apache-activemq-5.15.0-bin.tar.gz
+    dest: /opt/
+    remote_src: True
+- name: link to start side
+  file: src=/opt/apache-activemq-5.15.0/bin/linux-x86-64/activemq  dest=/etc/init.d/activemq state=link force=yes
+  notify: start activemq

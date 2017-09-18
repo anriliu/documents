@@ -1,0 +1,31 @@
+---
+###ansible-playbook --limit 10.0.1.151 user.yml --tags adduser --extra-vars 'ansible_ssh_pass=Global username=zhangshan upassword=123456'
+###ansible-playbook user.yml --limit pfingo --tags chpasswd -e "ansible_ssh_pass=Global username=root upassword=GlobalPf"
+- hosts: all
+  remote_user: root
+  gather_facts: no
+  tasks:
+  - name: add  users
+    user: name={{ username }} password={{ upassword |password_hash('sha512') }} groups=wheel append=yes state=present
+    tags: adduser
+  - name: install libselinux-python
+    yum: name=libselinux-python state=present
+    register: install
+    until: install.rc==0
+    retries: 5
+    delay: 5
+    tags: always
+  - name: Allow 'wheel' group to have passwordless sudo
+    lineinfile:
+     dest: /etc/sudoers
+     state: present
+     regexp: '^%wheel'
+     line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+    tags: adduser
+  - name: remove user
+    user: name={{ username }} remove=yes  state=absent
+    tags: deluser
+  - name: Change user password
+    user: name={{ username }} update_password=always password={{ upassword |password_hash('sha512') }}
+    tags: chpasswd
+...

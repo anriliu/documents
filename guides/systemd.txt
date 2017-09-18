@@ -1,0 +1,393 @@
+Resource Management with systemd
+
+The control groups, abbreviated as cgroups in this guide, are a Linux kernel feature that allows you to allocate resources — such as CPU time, system memory, network bandwidth, or combinations of these resources — among hierarchically ordered groups of processes running on a system. By using cgroups, system administrators gain fine-grained control over allocating, prioritizing, denying, managing, and monitoring system resources. Hardware resources can be smartly divided up among applications and users, increasing overall efficiency.
+ed Hat Enterprise Linux 7 moves the resource management settings from the process level to the application level by binding the system of cgroup hierarchies with the systemd unit tree. Therefore, you can manage system resources with systemctl commands, or by modifying systemd unit files,libcgroup is still available to cover for certain specific cases, where systemd is not yet applicable, most notably for using the net-prio subsystem. 
+
+Find the list of currently mounted resource controllers in /proc/cgroups
+
+Systemd Unit Types
+
+All processes running on the system are child processes of the systemd init process. Systemd provides three unit types that are used for the purpose of resource control 
+Service — A process or a group of processes, which systemd started based on a unit configuration file.  Services encapsulate the specified processes so that they can be started and stopped as one set. Services are named in the following way:
+name.service
+Scope — A group of externally created processes. Scopes encapsulate processes that are started and stopped by arbitrary processes via the fork() function and then registered by systemd at runtime. user sessions, containers, and virtual machines are treated as scopes. Scopes are named as follows:
+name.scope
+Slice — A group of hierarchically organized units. Slices do not contain processes, they organize a hierarchy in which scopes and services are placed. The actual processes are contained in scopes or in services. In this hierarchical tree, every name of a slice unit corresponds to the path to a location in the hierarchy. The dash ("-") character acts as a separator of the path components. For example, if the name of a slice looks as follows:
+parent-name.slice
+it means that a slice called parent-name.slice is a subslice of the parent.slice. This slice can have its own subslice named parent-name-name2.slice, and so on.
+There is one root slice denoted as:
+-.slice
+
+Service, scope, and slice units directly map to objects in the cgroup tree.
+Services, scopes, and slices are created manually by the system administrator or dynamically by programs,there are four slices created by default:
+-.slice — the root slice;
+system.slice — the default place for all system services;
+user.slice — the default place for all user sessions;
+machine.slice — the default place for all virtual machines and Linux containers.
+
+systemd-cgl can list current system cgroup tree -.slice is not shown as it is implicitly identified with the root of the entire tree.
+
+CREATING CONTROL GROUPS:
+From the systemd's perspective, a cgroup is bound to a system unit configurable with a unit file and manageable with systemd's command-line utilities
+To create a transient cgroup for a service, start the service with the systemd-run command.
+systemd-run --unit=name --scope --slice=slice_name command
+systemd-run --unit=toptest --slice=test top -b 
+To assign a persistent cgroup to a service, edit its unit configuration file.
+To configure a unit to be started automatically on system boot, execute the systemctl enable command 
+Running this command automatically creates a unit file in the /usr/lib/systemd/system/ directory
+
+REMOVING CONTROL GROUPS:
+systemctl stop name.service
+systemctl kill name.service --kill-who=PID,... --signal=signal 
+Persistent cgroups are released when the unit is disabled and its configuration file is deleted by running:
+systemctl disable name.service 
+
+MODIFYING CONTROL GROUPS:
+Each persistent unit supervised by systemd has a unit configuration file in the /usr/lib/systemd/system/ 
+To change parameters of a service unit, modify this configuration file. This can be done either manually or from the command-line interface by using the systemctl set-property command or modify Systemd service unit files (systemctl daemon-reload must be ran after made file changes)
+systemctl set-property name parameter=value
+systemctl set-property name parameter=value
+systemctl set-property httpd.service CPUShares=600 MemoryLimit=500M
+systemctl set-property --runtime httpd.service CPUQuota=20% MemoryLimit=500M
+
+
+systemctl show sshd.service
+#查看服务启动消耗时间
+systemd-analyze blame
+
+Limiting Block IO of a Unit:
+To lower the block IO weight for the Apache service accessing the /home/jdoe/ directory, add the following text into the /etc/systemd/system/httpd.service.d/cpu.conf unit file:
+[Service]
+BlockIODeviceWeight=/home/jdoe 750
+
+To set the maximum bandwidth for Apache reading from the /var/log/ directory to 5MB per second, use the following syntax:
+[Service]
+BlockIOReadBandwith=/var/log 5M
+
+
+
+MANAGING BLOCK IO
+To manage the Block IO, use the following directives in the [Service] section of the unit configuration file. Directives listed below assume that the BlockIOAccounting parameter is enabled:
+BlockIOWeight=value
+Replace value with a new overall block IO weight for the executed processes. Choose a single value between 10 and 1000, the default setting is 1000.
+BlockIODeviceWeight=device_name value
+Replace value with a block IO weight for a device specified with device_name. Replace device_name either with a name or with a path to a device. As with BlockIOWeight, it is possible to set a single weight value between 10 and 1000.
+BlockIOReadBandwidth=device_name value
+This directive allows you to limit a specific bandwidth for a unit. Replace device_name with the name of a device or with a path to a block device node, value stands for a bandwidth rate. Use suffixes K, M, G, or T to specify units of measurement. A value with no suffix is interpreted as bytes per second.
+BlockIOWriteBandwidth=device_name value
+Limits the write bandwidth for a specified device. Accepts the same arguments as BlockIOReadBandwidth.
+
+⁠MANAGING OTHER SYSTEM RESOURCES
+There are several other directives that can be used in the unit file to facilitate resource management:
+DeviceAllow=device_name options
+This option controls access to specific device nodes. Here, device_name stands for a path to a device node or a device group name as specified in /proc/devices. Replace options with a combination of r, w, and m to allow the unit to read, write, or create device nodes.
+
+DevicePolicy=value
+Here, value is one of: strict (only allows the types of access explicitly specified with DeviceAllow), closed (allows access to standard pseudo devices including /dev/null, /dev/zero, /dev/full, /dev/random, and /dev/urandom) or auto (allows access to all devices if no explicit DeviceAllow is present, which is the default behavior)
+
+Slice=slice_name
+Replace slice_name with the name of the slice to place the unit in. The default is system.slice. Scope units can not be arranged in this way, since they are tied to their parent slices.
+
+ExecStartPost=command
+Currently, systemd supports only a subset of cgroup features. However, as a workaround, you can use the ExecStartPost= option along with setting the memory.memsw.limit_in_bytes parameter in order to prevent any swap usage for a service. For more information on ExecStartPost=, see the systemd.service(5) man page.
+Imagine that you wish to change the memory.memsw.limit_in_bytes setting to the same value as the unit's MemoryLimit= in order to prevent any swap usage for a given example service.
+ExecStartPost=/bin/bash -c "echo 1G > /sys/fs/cgroup/memory/system.slice/example.service/memory.memsw.limit_in_bytes"
+
+
+Controller-Specific Kernel Documentation
+The kernel-doc package provides detailed documentation of all resource controllers
+yum install kernel-doc
+
+After the installation, the following files will appear under the /usr/share/doc/kernel-doc-<kernel_version>/Documentation/cgroups/ directory:
+blkio subsystem — blkio-controller.txt
+cpuacct subsystem — cpuacct.txt
+cpuset subsystem — cpusets.txt
+devices subsystem — devices.txt
+freezer subsystem — freezer-subsystem.txt
+memory subsystem — memory.txt
+net_cls subsystem — net_cls.txt
+Additionally, refer to the following files on further information about the cpu subsystem:
+Real-Time scheduling — /usr/share/doc/kernel-doc-<kernel_version>/Documentation/scheduler/sched-rt-group.txt
+CFS scheduling — /usr/share/doc/kernel-doc-<kernel_version>/Documentation/scheduler/sched-bwc.txt
+
+
+Use the systemctl command to list system units and to view their status. Also, the systemd-cgls command is provided to view the hierarchy of control groups and systemd-cgtop to monitor their resource consumption in real time.
+to use systemd-cgtop you have to enable Accounting
+BlockIOAccounting=1
+MemoryAccounting=1
+CPUAccounting=1
+
+systemctl list-units
+systemctl -t slice
+systemctl -t service
+systemctl list-unit-files
+
+machinectl may be used to introspect and control the state of the systemd(1) virtual machine and container registration manager systemd-machined.service
+
+
+
+
+
+Use systemd manage service:
+Systemd introduces the concept of systemd units. 
+Unit Type	File Extension	Description
+Service unit	.service	A system service.
+Target unit	.target	A group of systemd units.
+Automount unit	.automount	A file system automount point.
+Device unit	.device	A device file recognized by the kernel.
+Mount unit	.mount	A file system mount point.
+Path unit	.path	A file or directory in a file system.
+Scope unit	.scope	An externally created process.
+Slice unit	.slice	A group of hierarchically organized units that manage system processes.
+Snapshot unit	.snapshot	A saved state of the systemd manager.
+Socket unit	.socket	An inter-process communication socket.
+Swap unit	.swap	A swap device or a swap file.
+Timer unit	.timer	A systemd timer.
+
+Systemd Unit Files Locations
+
+Directory	Description
+/usr/lib/systemd/system/	Systemd unit files distributed with installed RPM packages.
+/run/systemd/system/	Systemd unit files created at run time. This directory takes precedence over the directory with installed service unit files.
+/etc/systemd/system/	Systemd unit files created by systemctl enable as well as unit files added for extending a service. This directory takes precedence over the directory with runtime unit files.
+
+The default configuration of systemd is defined during the compilation and it can be found in systemd configuration file at /etc/systemd/system.conf
+
+Main Features:
+In Red Hat Enterprise Linux 7, the systemd system and service manager provides the following main features:
+
+Socket-based activation — At boot time, systemd creates listening sockets for all system services that support this type of activation, and passes the sockets to these services as soon as they are started. This not only allows systemd to start services in parallel, but also makes it possible to restart a service without losing any message sent to it while it is unavailable: the corresponding socket remains accessible and all messages are queued.
+Systemd uses socket units for socket-based activation.
+
+Bus-based activation — System services that use D-Bus for inter-process communication can be started on-demand the first time a client application attempts to communicate with them. Systemd uses D-Bus service files for bus-based activation.
+
+Device-based activation — System services that support device-based activation can be started on-demand when a particular type of hardware is plugged in or becomes available. Systemd uses device units for device-based activation.
+
+Path-based activation — System services that support path-based activation can be started on-demand when a particular file or directory changes its state. Systemd uses path units for path-based activation.
+
+System state snapshots — Systemd can temporarily save the current state of all units or restore a previous state of the system from a dynamically created snapshot. To store the current state of the system, systemd uses dynamically created snapshot units.
+
+Mount and automount point management — Systemd monitors and manages mount and automount points. Systemd uses mount units for mount points and automount units for automount points.
+
+Aggressive parallelization — Because of the use of socket-based activation, systemd can start system services in parallel as soon as all listening sockets are in place. In combination with system services that support on-demand activation, parallel activation significantly reduces the time required to boot the system.
+
+Transactional unit activation logic — Before activating or deactivating a unit, systemd calculates its dependencies, creates a temporary transaction, and verifies that this transaction is consistent. If a transaction is inconsistent, systemd automatically attempts to correct it and remove non-essential jobs from it before reporting an error.
+
+Backwards compatibility with SysV init — Systemd supports SysV init scripts as described in the Linux Standard Base Core Specification, which eases the upgrade path to systemd service units.
+
+
+Systemd has only limited support for runlevels.
+The systemctl utility does not communicate with services that have not been started by systemd
+System services are unable to read from the standard input stream. When systemd starts a service, it connects its standard input to /dev/null to prevent any interaction with the user.
+System services do not inherit any context (such as the HOME and PATH environment variables) from the invoking user and their session. Each service runs in a clean execution context.
+The systemctl utility does not support custom commands. 
+
+
+
+systemctl list-units --type service
+Lists all services and checks if they are enabled.by default it displays only active units,If you want to list all loaded units regardless of their state, run this command with the --all
+systemctl list-unit-files --type service to list all installed service unit files to determine if they are enabled. 
+systemctl list-dependencies --after
+Lists services that are ordered to start before the specified unit.
+systemctl list-dependencies --before
+Lists services that are ordered to start after the specified unit.
+systemctl is-enabled name.service
+Checks if a service is enabled.
+systemctl is-active name.service
+Checks if a service is running.
+systemctl try-restart name.service
+Restarts a service only if it is running.
+systemctl show nfs-server.service -p Names
+Find units alias names.
+systemctl status name.service
+Display detailed information about a service unit that corresponds to a system service
+systemctl reenable name.service
+systemctl mask name.service
+This command replaces the /etc/systemd/system/name.service file with a symbolic link to /dev/null to revert this action and unmask a service unit, type as root:systemctl unmask name.service
+
+
+If you change the root directory using the chroot command, most systemctl commands refuse to perform any action. The reason for this is that the systemd process and the user that used the chroot command do not have the same view of the filesystem
+
+When you attempt to start a new service, systemd resolves all dependencies automatically. Note that this is done without explicit notification to the user. If you are already running a service, and you attempt to start another service with a negative dependency, the first service is automatically stopped.
+
+SYSTEMD TARGETS
+In Red Hat Enterprise Linux 7, the concept of runlevels has been replaced with systemd targets.
+Comparison of SysV Runlevels with systemd Targets
+Runlevel	Target Units	Description
+0	runlevel0.target, poweroff.target	Shut down and power off the system.
+1	runlevel1.target, rescue.target	Set up a rescue shell.
+2	runlevel2.target, multi-user.target	Set up a non-graphical multi-user system.
+3	runlevel3.target, multi-user.target	Set up a non-graphical multi-user system.
+4	runlevel4.target, multi-user.target	Set up a non-graphical multi-user system.
+5	runlevel5.target, graphical.target	Set up a graphical multi-user system.
+6	runlevel6.target, reboot.target	Shut down and reboot the system.
+
+Comparison of SysV init Commands with systemctl
+Old Command	New Command	Description
+runlevel	systemctl list-units --type target	Lists currently loaded target units.
+telinit runlevel	systemctl isolate name.target	Changes the current target.
+⁠
+To determine which target unit is used by default, run the following command:
+systemctl get-default
+
+To list all currently loaded target units, type the following command at a shell prompt(By default, the systemctl list-units command displays only active units --all to list all):
+systemctl list-units --type target 
+
+To configure the system to use a different target unit by default, type the following at a shell prompt as root:
+systemctl set-default name.target
+
+To change to a different target unit in the current session, type the following at a shell prompt as root:
+systemctl isolate name.target
+
+In rescue mode, the system attempts to mount all local file systems and start some important system services, but it does not activate network interfaces or allow more users to be logged into the system at the same time.
+In Red Hat Enterprise Linux 7, rescue mode is equivalent to single user mode and requires the root password.
+systemctl rescue
+
+Emergency mode provides the most minimal environment possible and allows you to repair your system even in situations when the system is unable to enter rescue mode. In emergency mode, the system mounts the root file system only for reading, emergency mode requires the root password:
+systemctl emergency
+
+Comparison of Power Management Commands with systemctl
+Old Command	New Command	Description
+halt	systemctl halt	Halts the system.
+poweroff	systemctl poweroff	Powers off the system.
+reboot	systemctl reboot	Restarts the system.
+pm-suspend	systemctl suspend	Suspends the system.
+pm-hibernate	systemctl hibernate	Hibernates the system.
+pm-suspend-hybrid	systemctl hybrid-sleep	Hibernates and suspends the system.
+
+To shut down the system and power off the machine at a certain time, use a command in the following format as root:
+shutdown --poweroff hh:mm
+
+To shut down and halt the system after a delay, without powering off the machine, use a command in the following format as root:
+shutdown --halt +m
+
+A pending shutdown can be canceled by the root user as follows:
+shutdown -c
+
+You can connect to this machine by running the systemctl command with the --host or -H command line option:
+systemctl --host user_name@host_name command
+
+Creating and modifying systemd unit files:
+the /etc/systemd/system/ directory is reserved for unit files created or customized by the system administrator.
+Unit file names take the following form:
+unit_name.type_extension
+Unit files can be supplemented with a directory for additional configuration files. For example, to add custom configuration options to sshd.service, create the sshd.service.d/custom.conf file and insert additional directives there,Also, the sshd.service.wants/ and sshd.service.requires/ directories can be created. These directories contain symbolic links to unit files that are dependencies of the sshd service. 
+Unit files typically consist of three sections:
+[Unit] — contains generic options that are not dependent on the type of the unit. These options provide unit description, specify the unit's behavior, and set dependencies to other units.
+[unit type] — if a unit has type-specific directives, these are grouped under a section named after the unit type.
+[Install] — contains information about unit installation used by systemctl enable and disable commands
+Important [Unit] Section Options:
+Option ⁠[a]	Description
+Description	A meaningful description of the unit. This text is displayed for example in the output of the systemctl status command.
+Documentation	Provides a list of URIs referencing documentation for the unit.
+After ⁠[b]	Defines the order in which units are started. The unit starts only after the units specified in After are active. Unlike Requires, After does not explicitly activate the specified units. The Before option has the opposite functionality to After.
+Requires	Configures dependencies on other units. The units listed in Requires are activated together with the unit. If any of the required units fail to start, the unit is not activated.
+Wants	Configures weaker dependencies than Requires. If any of the listed units does not start successfully, it has no impact on the unit activation. This is the recommended way to establish custom unit dependencies.
+Conflicts	Configures negative dependencies, an opposite to Requires.
+[a] For a complete list of options configurable in the [Unit] section, see the systemd.unit(5) manual page.
+[b] In most cases, it is sufficient to set only the ordering dependencies with After and Before unit file options. If you also set a requirement dependency with Wants (recommended) or Requires, the ordering dependency still needs to be specified. That is because ordering and requirement dependencies work independently from each other.
+
+Important [Service] Section Options:
+Option ⁠[a]	Description
+Type	Configures the unit process startup type that affects the functionality of ExecStart and related options. One of:
+simple – The default value. The process started with ExecStart is the main process of the service.
+forking – The process started with ExecStart spawns a child process that becomes the main process of the service. The parent process exits when the startup is complete.
+oneshot – This type is similar to simple, but the process exits before starting consequent units.
+dbus – This type is similar to simple, but consequent units are started only after the main process gains a D-Bus name.
+notify – This type is similar to simple, but consequent units are started only after a notification message is sent via the sd_notify() function.
+idle – similar to simple, the actual execution of the service binary is delayed until all jobs are finished, which avoids mixing the status output with shell output of services.
+ExecStart	Specifies commands or scripts to be executed when the unit is started. ExecStartPre and ExecStartPost specify custom commands to be executed before and after ExecStart. Type=oneshot enables specifying multiple custom commands that are then executed sequentially.
+ExecStop	Specifies commands or scripts to be executed when the unit is stopped.
+ExecReload	Specifies commands or scripts to be executed when the unit is reloaded.
+Restart	With this option enabled, the service is restarted after its process exits, with the exception of a clean stop by the systemctl command.
+RemainAfterExit	If set to True, the service is considered active even when all its processes exited. Default value is False. This option is especially useful if Type=oneshot is configured.
+[a] For a complete list of options configurable in the [Service] section, see the systemd.service(5) manual page.
+
+
+Important [Install] Section Options:
+Option ⁠[a]	Description
+Alias	Provides a space-separated list of additional names for the unit. Most systemctl commands, excluding systemctl enable, can use aliases instead of the actual unit name.
+RequiredBy	A list of units that depend on the unit. When this unit is enabled, the units listed in RequiredBy gain a Require dependency on the unit.
+WantedBy	A list of units that weakly depend on the unit. When this unit is enabled, the units listed in WantedBy gain a Want dependency on the unit.
+Also	Specifies a list of units to be installed or uninstalled along with the unit.
+DefaultInstance	Limited to instantiated units, this option specifies the default instance for which the unit is enabled. See Section 9.6.5, “Working with Instantiated Units”
+[a] For a complete list of options configurable in the [Install] section, see the systemd.unit(5) manual page.
+
+Example units:
+[Unit]
+Description=Postfix Mail Transport Agent
+After=syslog.target network.target
+Conflicts=sendmail.service exim.service
+
+[Service]
+Type=forking
+PIDFile=/var/spool/postfix/pid/master.pid
+EnvironmentFile=-/etc/sysconfig/network
+ExecStartPre=-/usr/libexec/postfix/aliasesdb
+ExecStartPre=-/usr/libexec/postfix/chroot-update
+ExecStart=/usr/sbin/postfix start
+ExecReload=/usr/sbin/postfix reload
+ExecStop=/usr/sbin/postfix stop
+
+[Install]
+WantedBy=multi-user.target
+
+
+Note that systemd ignores limits set in the /etc/security/limits.conf and /etc/security/limits.d/*.conf configuration files. The limits defined in these files are set by PAM when starting a login session, but daemons started by systemd do not use PAM login sessions you can do only by change units files.
+
+You can specify a timeout value per service to prevent a malfunctioning service from freezing the system. Otherwise, timeout is set by default to 90 seconds for normal services and to 300 seconds for SysV-compatible services.
+
+You can specify a timeout value per service to prevent a malfunctioning service from freezing the system. Otherwise, timeout is set by default to 90 seconds for normal services and to 300 seconds for SysV-compatible services.
+TimeoutStartUSec value in the [Service] section:
+[Service]
+...
+PrivateTmp=true
+TimeoutStartSec=10
+
+
+
+To display an overview of overridden or modified unit files, use the following command:
+systemd-delta
+
+Working with Instantiated Units:
+It is possible to instantiate multiple units from a single template configuration file at runtime. The "@" character is used to mark the template and to associate units with it. Instantiated units can be started from another unit file (using Requires or Wants options), or with the systemctl start command. Instantiated service units are named the following way:
+template_name@instance_name.service
+Template unit name has the form of:
+unit_name@.service
+For example, the following Wants setting in a unit file:
+Wants=getty@ttyA.service,getty@ttyB.service
+
+first makes systemd search for given service units. If no such units are found, the part between "@" and the type suffix is ignored and systemd searches for the getty@.service file, reads the configuration from it, and starts the services.
+
+Wildcard characters, called unit specifiers, can be used in any unit configuration file:
+Important Unit Specifiers
+
+Unit Specifier	Meaning	Description
+%n	Full unit name	Stands for the full unit name including the type suffix. %N has the same meaning but also replaces the forbidden characters with ASCII codes.
+%p	Prefix name	Stands for a unit name with type suffix removed. For instantiated units %p stands for the part of the unit name before the "@" character.
+%i	Instance name	Is the part of the instantiated unit name between the "@" character and the type suffix. %I has the same meaning but also replaces the forbidden characters for ASCII codes.
+%H	Host name	Stands for the hostname of the running system at the point in time the unit configuration is loaded.
+%t	Runtime directory	Represents the runtime directory, which is either /run for the root user, or the value of the XDG_RUNTIME_DIR variable for unprivileged users.
+For a complete list of unit specifiers, see the systemd.unit(5) manual page.
+
+
+
+The Journal is a component of systemd that is responsible for viewing and management of log files. It can be used in parallel, or in place of a traditional syslog daemon, such as rsyslogd. 
+Logging data is collected, stored, and processed by the Journal's journald service. It creates and maintains binary files called journals based on logging information that is received from the kernel, from user processes, from standard output, and standard error output of system services or via its native API.
+journalctl -u docker.service #Show messages for the specified systemd unit UNIT (such as a service unit)
+journalctl -p priority #Here, replace priority with one of the following keywords (or with a number): debug (7), info (6), notice (5), warning (4), err (3), crit (2), alert (1), and emerg (0).
+journalctl -f #This command returns a list of the ten most current log lines.
+journalctl -o verbose #view full meta data about all entries
+journalctl -n #Number  #Replace Number with the number of lines to be shown.
+journalctl -b #view log entries only from the current boot
+journalctl -p warning --since="2013-3-16 23:59:59"   --until="2013-3-17 01:01:01" #time-based filtering
+journalctl _UID=70 _SYSTEMD_UNIT=avahi-daemon.service _SYSTEMD_UNIT=crond.service #journalctl fieldname1=value fieldname2=value ...display entries created by avahi-daemon.service or crond.service under user with UID 70
+
+
+By default, Journal stores log files only in memory or a small ring-buffer in the /run/log/journal/ directory. This is sufficient to show recent log history with journalctl. This directory is volatile, log data is not saved permanently. With persistent logging enabled, journal files are stored in /var/log/journal which means they persist after reboot. Journal can then replace rsyslog for some users
+To enable persistent storage for Journal, create the journal directory manually as shown in the following example. As root type:
+mkdir -p /var/log/journal/
+systemctl restart systemd-journald
+
+
+

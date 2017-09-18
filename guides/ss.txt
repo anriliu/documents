@@ -1,0 +1,97 @@
+10 examples of Linux ss command to monitor network connections
+
+1. List all connections(connected connections)
+ss
+2. Filter out tcp,udp or unix connections
+ss -at or ss -a -A tcp
+By default the "t" option alone is going to report only those connections that are "established" or CONNECTED". It does not report the tcp sockets that are "LISTENING". Use the '-a' option together with t, to report them all at once. same to udp -u and uxix -x
+ss -ua
+ss -xa
+
+3. Do not resolve hostname
+ss -nt
+
+4. Show only listening sockets
+ss -ltn
+
+5. Print process name and pid
+ss -ltp
+
+6. Print summary statistics
+ss -s
+
+7. Display timer information
+ss -tn -o
+With the '-o' option, the time information of each connection would be displayed. The timer information tells how long with
+
+8. Display only IPv4 or IPv6 socket connections
+To display only IPv4 socket connections use the '-f inet' or '-4' option.
+ss -tl4
+To display only IPv6 connections use the '-f inet6' or '-6' option.
+ss -tl -f inet6
+
+9. Filtering connections by tcp state
+ss [ OPTIONS ] [ STATE-FILTER ] [ ADDRESS-FILTER ]
+ss -t4 state established
+ss -t4 state time-wait
+
+The state can be either of the following
+1. established
+2. syn-sent
+3. syn-recv
+4. fin-wait-1
+5. fin-wait-2
+6. time-wait
+7. closed
+8. close-wait
+9. last-ack
+10. closing
+11. all - All of the above states
+12. connected - All the states except for listen and closed
+13. synchronized - All the connected states except for syn-sent
+14. bucket - Show states, which are maintained as minisockets, i.e. time-wait and syn-recv.
+15. big - Opposite to bucket state.
+
+10. Filter connections by address and port number
+Display all socket connections with source or destination port of ssh.
+ss -at '( dport = :ssh or sport = :ssh )'
+Sockets with destination port 443 or 80
+ss -nt '( dst :443 or dst :80 )'
+ss -nt dst :443 or dst :80
+
+# Filter by address
+ss -nt dst 74.125.236.178
+
+# CIDR notation is also supported
+ss -nt dst 74.125.236.178/16
+
+# Address and Port combined
+ss -nt dst 74.125.236.178:80
+
+Ports can also be filtered with dport/sport options. Port numbers must be prefixed with a ":".
+ss -nt dport = :80
+
+# source address is 127.0.0.1 and source port is greater than 5000
+$ ss -nt src 127.0.0.1 sport gt :5000
+
+# local smtp (port 25) sockets
+$ sudo ss -ntlp sport eq :smtp
+
+# port numbers greater than 25
+$ sudo ss -nt sport gt :1024
+
+# sockets with remote ports less than 100
+$ sudo ss -nt dport \< :100
+
+# connections to remote port 80
+$ sudo ss -nt state connected dport = :80
+
+
+The following operators are supported when comparing port numbers
+<= or le : Less than or equal to port >= or ge : Greater than or equal to port
+== or eq : Equal to port
+!= or ne : Not equal to port
+< or gt : Less than to port > or lt : Greater than to port
+
+Documentation of the filter syntax can be found in the package iproute2-doc that can be installed on debian/ubuntu systems
+

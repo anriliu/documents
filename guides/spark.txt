@@ -1,0 +1,133 @@
+Spark applications run as independent sets of processes on a cluster, coordinated by the SparkContext object in your main program (called the driver program).
+Specifically, to run on a cluster, the SparkContext can connect to several types of cluster managers (either Spark’s own standalone cluster manager, Mesos or YARN), which allocate resources across applications. Once connected, Spark acquires executors on nodes in the cluster, which are processes that run computations and store data for your application. Next, it sends your application code (defined by JAR or Python files passed to SparkContext) to the executors. Finally, SparkContext sends tasks to the executors to run.
+
+There are several useful things to note about this architecture:
+
+1.Each application gets its own executor processes, which stay up for the duration of the whole application and run tasks in multiple threads. This has the benefit of isolating applications from each other, on both the scheduling side (each driver schedules its own tasks) and executor side (tasks from different applications run in different JVMs). However, it also means that data cannot be shared across different Spark applications (instances of SparkContext) without writing it to an external storage system.
+2. Spark is agnostic to the underlying cluster manager. As long as it can acquire executor processes, and these communicate with each other, it is relatively easy to run it even on a cluster manager that also supports other applications (e.g. Mesos/YARN).
+3.The driver program must listen for and accept incoming connections from its executors throughout its lifetime (e.g., see spark.driver.port in the network config section). As such, the driver program must be network addressable from the worker nodes.
+4.Because the driver schedules tasks on the cluster, it should be run close to the worker nodes, preferably on the same local area network. If you’d like to send requests to the cluster remotely, it’s better to open an RPC to the driver and have it submit operations from nearby than to run a driver far away from the worker nodes.
+
+
+Cluster Manager Types
+Standalone – a simple cluster manager included with Spark that makes it easy to set up a cluster.
+Apache Mesos – a general cluster manager that can also run Hadoop MapReduce and service applications.
+Hadoop YARN – the resource manager in Hadoop 2.
+Kubernetes (experimental) – In addition to the above, there is experimental support for Kubernetes.
+
+Submitting Applications
+Applications can be submitted to a cluster of any type using the spark-submit script
+./bin/spark-submit \
+  --class <main-class> \
+  --master <master-url> \
+  --deploy-mode <deploy-mode> \
+  --conf <key>=<value> \
+  ... # other options
+  <application-jar> \
+  [application-arguments]
+
+A common deployment strategy is to submit your application from a gateway machine that is physically co-located with your worker machines (e.g. Master node in a standalone EC2 cluster). In this setup, client mode is appropriate. In client mode, the driver is launched directly within the spark-submit process which acts as a client to the cluster. The input and output of the application is attached to the console. Thus, this mode is especially suitable for applications that involve the REPL (e.g. Spark shell).
+Alternatively, if your application is submitted from a machine far from the worker machines (e.g. locally on your laptop), it is common to use cluster mode to minimize network latency between the drivers and the executors. Currently, standalone mode does not support cluster mode for Python applications.
+Monitoring
+Each driver program has a web UI, typically on port 4040, master at 8080 and worker at 8081
+Spark uses the following URL scheme to allow different strategies for disseminating jars:
+
+file: - Absolute paths and file:/ URIs are served by the driver’s HTTP file server, and every executor pulls the file from the driver HTTP server.
+hdfs:, http:, https:, ftp: - these pull down files and JARs from the URI as expected
+local: - a URI starting with local:/ is expected to exist as a local file on each worker node. This means that no network IO will be incurred, and works well for large files/JARs that are pushed to each worker, or shared via NFS, GlusterFS, etc.
+
+Job Scheduling
+Spark gives control over resource allocation both across applications (at the level of the cluster manager) and within applications (if multiple computations are happening on the same SparkContext). 
+Scheduling Across Applications
+1.Standalone mode: By default, applications submitted to the standalone mode cluster will run in FIFO (first-in-first-out) order, and each application will try to use all available nodes. You can limit the number of nodes an application uses by setting the spark.cores.max configuration property in it, or change the default for applications that don’t set this setting through spark.deploy.defaultCores. Finally, in addition to controlling cores, each application’s spark.executor.memory setting controls its memory use.
+2.Mesos: To use static partitioning on Mesos, set the spark.mesos.coarse configuration property to true, and optionally set spark.cores.max to limit each application’s resource share as in the standalone mode. You should also set spark.executor.memory to control the executor memory.
+3.YARN: The --num-executors option to the Spark YARN client controls how many executors it will allocate on the cluster (spark.executor.instances as configuration property), while --executor-memory (spark.executor.memory configuration property) and --executor-cores (spark.executor.cores configuration property) control the resources per executor. For more information, see the YARN Spark Properties.
+
+A second option available on Mesos is dynamic sharing of CPU cores. In this mode, each Spark application still has a fixed and independent memory allocation (set by spark.executor.memory), but when the application is not running tasks on a machine, other applications may run tasks on those cores.To use this mode, simply use a mesos:// URL and set spark.mesos.coarse to false. 
+
+Note that none of the modes currently provide memory sharing across applications. If you would like to share data this way, we recommend running a single server application that can serve multiple requests by querying the same RDDs.
+
+
+Dynamic Resource Allocation
+Spark provides a mechanism to dynamically adjust the resources your application occupies based on the workload. This means that your application may give resources back to the cluster if they are no longer used and request them again later when there is demand. This feature is particularly useful if multiple applications share resources in your Spark cluster.
+This feature is disabled by default
+
+There are two requirements for using this feature. First, your application must set spark.dynamicAllocation.enabled to true. Second, you must set up an external shuffle service on each worker node in the same cluster and set spark.shuffle.service.enabled to true in your application. 
+In standalone mode, simply start your workers with spark.shuffle.service.enabled set to true.
+In Mesos coarse-grained mode, run $SPARK_HOME/sbin/start-mesos-shuffle-service.sh on all slave nodes with spark.shuffle.service.enabled set to true. 
+In YARN mode, follow the instructions https://spark.apache.org/docs/latest/running-on-yarn.html#configuring-the-external-shuffle-service
+All other relevant configurations are optional and under the spark.dynamicAllocation.* and spark.shuffle.service.* namespaces
+
+Resource Allocation Policy
+At a high level, Spark should relinquish executors when they are no longer used and acquire executors when they are needed. 
+Request Policy
+A Spark application with dynamic allocation enabled requests additional executors when it has pending tasks waiting to be scheduled. This condition necessarily implies that the existing set of executors is insufficient to simultaneously saturate all tasks that have been submitted but not yet finished.
+Spark requests executors in rounds. The actual request is triggered when there have been pending tasks for spark.dynamicAllocation.schedulerBacklogTimeout seconds, and then triggered again every spark.dynamicAllocation.sustainedSchedulerBacklogTimeout seconds thereafter if the queue of pending tasks persists. Additionally, the number of executors requested in each round increases exponentially from the previous round. For instance, an application will add 1 executor in the first round, and then 2, 4, 8 and so on executors in the subsequent rounds.
+The motivation for an exponential increase policy is twofold. First, an application should request executors cautiously in the beginning in case it turns out that only a few additional executors is sufficient. This echoes the justification for TCP slow start. Second, the application should be able to ramp up its resource usage in a timely manner in case it turns out that many executors are actually needed.
+Remove Policy
+The policy for removing executors is much simpler. A Spark application removes an executor when it has been idle for more than spark.dynamicAllocation.executorIdleTimeout seconds. Note that, under most circumstances, this condition is mutually exclusive with the request condition, in that an executor should not be idle if there are still pending tasks to be scheduled.
+
+
+
+Scheduling Within an Application
+Inside a given Spark application (SparkContext instance), multiple parallel jobs can run simultaneously if they were submitted from separate threads. By “job”
+By default, Spark’s scheduler runs jobs in FIFO fashion. Each job is divided into “stages” (e.g. map and reduce phases), and the first job gets priority on all available resources while its stages have tasks to launch, then the second job gets priority,
+
+Starting in Spark 0.8, it is also possible to configure fair sharing between jobs. Under fair sharing, Spark assigns tasks between jobs in a “round robin” fashion, so that all jobs get a roughly equal share of cluster resources. This means that short jobs submitted while a long job is running can start receiving resources right away and still get good response times, without waiting for the long job to finish. This mode is best for multi-user settings.
+To enable the fair scheduler, simply set the spark.scheduler.mode property to FAIR when configuring a SparkContext:
+val conf = new SparkConf().setMaster(...).setAppName(...)
+conf.set("spark.scheduler.mode", "FAIR")
+val sc = new SparkContext(conf)
+
+Fair Scheduler Pools
+The fair scheduler also supports grouping jobs into pools, and setting different scheduling options (e.g. weight) for each pool. This can be useful to create a “high-priority” pool for more important jobs
+Without any intervention, newly submitted jobs go into a default pool, but jobs’ pools can be set by adding the spark.scheduler.pool “local property” to the SparkContext in the thread that’s submitting them. This is done as follows:
+// Assuming sc is your SparkContext variable
+sc.setLocalProperty("spark.scheduler.pool", "pool1")
+After setting this local property, all jobs submitted within this thread (by calls in this thread to RDD.save, count, collect, etc) will use this pool name. The setting is per-thread to make it easy to have a thread run multiple jobs on behalf of the same user. If you’d like to clear the pool that a thread is associated with, simply call:
+sc.setLocalProperty("spark.scheduler.pool", null)
+
+Default Behavior of Pools
+By default, each pool gets an equal share of the cluster (also equal in share to each job in the default pool), but inside each pool, jobs run in FIFO order. For example, if you create one pool per user, this means that each user will get an equal share of the cluster, and that each user’s queries will run in order instead of later queries taking resources from that user’s earlier ones.
+
+Configuring Pool Properties
+Specific pools’ properties can also be modified through a configuration file. Each pool supports three properties:
+
+schedulingMode: This can be FIFO or FAIR, to control whether jobs within the pool queue up behind each other (the default) or share the pool’s resources fairly.
+weight: This controls the pool’s share of the cluster relative to other pools. By default, all pools have a weight of 1. If you give a specific pool a weight of 2, for example, it will get 2x more resources as other active pools. Setting a high weight such as 1000 also makes it possible to implement priority between pools—in essence, the weight-1000 pool will always get to launch tasks first whenever it has jobs active.
+minShare: Apart from an overall weight, each pool can be given a minimum shares (as a number of CPU cores) that the administrator would like it to have. The fair scheduler always attempts to meet all active pools’ minimum shares before redistributing extra resources according to the weights. The minShare property can therefore be another way to ensure that a pool can always get up to a certain number of resources (e.g. 10 cores) quickly without giving it a high priority for the rest of the cluster. By default, each pool’s minShare is 0.
+The pool properties can be set by creating an XML file, similar to conf/fairscheduler.xml.template, and setting a spark.scheduler.allocation.file property in your SparkConf.
+conf.set("spark.scheduler.allocation.file", "/path/to/file")
+The format of the XML file is simply a <pool> element for each pool, with different elements within it for the various settings. For example:
+
+<?xml version="1.0"?>
+<allocations>
+  <pool name="production">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>1</weight>
+    <minShare>2</minShare>
+  </pool>
+  <pool name="test">
+    <schedulingMode>FIFO</schedulingMode>
+    <weight>2</weight>
+    <minShare>3</minShare>
+  </pool>
+</allocations>
+A full example is also available in conf/fairscheduler.xml.template. Note that any pools not configured in the XML file will simply get default values for all settings (scheduling mode FIFO, weight 1, and minShare 0).
+
+
+
+
+To start standalone cluster
+docker run -d --net=host -v /tmp:/tmp -v /spark:/spark -e SPARK_WORKER_MEMORY=20g -e SPARK_MASTER_WEBUI_PORT=32789 -e SPARK_WORKER_WEBUI_PORT=32790 --name spark -e "SPARK_ROLE=all" 192.168.168.21:8123/spark-pyml:2.2.0
+
+docker run -d -it --net=host -v /tmp:/tmp -v /spark:/spark -e SPARK_WORKER_MEMORY=90g -e SPARK_WORKER_CORES=30 -e "SPARK_WORKER_WEBUI_PORT=32790" --name spark -e SPARK_ROLE=worker -e SPARK_MASTER=192.168.168.21:7077 192.168.168.21:8123/spark-pyml:2.2.0
+
+you will need hdfs of mount nfs volume to all driver,worker and master nodes
+then you can share the saved reslut everywhere
+bin/spark-submit  --master spark://192.168.168.21:7077  --name new_wrod2vec_app --num-executors 100 --executor-memory 15G --total-executor-cores 30    --driver-memory 10G --conf spark.default.parallelism=1000  --py-files /spark/python_pycharm/zip_example/server_tfidf.zip --packages org.mongodb.spark:mongo-spark-connector_2.10:2.2.0  /spark/python_pycharm/spark_example/word2vec_submit.py
+
+
+
+
+ ./spark-submit  --master spark://192.168.168.21:7077  --name wrod2vec_ml   --executor-memory 9G --total-executor-cores 36  --executor-cores 4   --driver-memory 70G  --conf spark.driver.maxResultSize=10g   --conf spark.local.dir=/home/spark/tmp0,/home/spark/tmp1,/home/spark/tmp2,/home/spark/tmp3,/home/spark/tmp4  --conf spark.shuffle.consolidataFiles=true  --conf spark.memory.fraction=0.75 --conf spark.memory.StorageFraction=0.4  --conf spark.shuffle.file.buffer=128k  --conf spark.rpc.message.maxSize=500  --conf spark.reducer.maxSizeInFlight=128m  --conf spark.default.parallelism=72 --conf spark.shuffle.io.maxRetries=30  --conf spark.shuffle.io.retryWait=30 --conf spark.executor.extraJavaOptions="-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/spark/data/executor_dump.hprof  -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:ParallelCMSThreads=20 -XX:-UseGCOverheadLimit -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintHeapAtGC -XX:+PrintGCApplicationConcurrentTime -Xloggc:/spark/data/executor_gc.log -Dio.netty.leakDetectionLevel=advanced  -Dio.netty.leakDetectionLevel=paranoid " --conf spark.driver.extraJavaOptions="-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/spark/data/driver_dump.hprof  -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:ParallelCMSThreads=20 -XX:-UseGCOverheadLimit -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintHeapAtGC -XX:+PrintGCApplicationConcurrentTime -Xloggc:/spark/data/driver_gc.log -Dio.netty.leakDetectionLevel=advanced  -Dio.netty.leakDetectionLevel=paranoid " --py-files /spark/word2vec_project/zip_example/hdfs_tfidf.zip --packages org.mongodb.spark:mongo-spark-connector_2.10:2.2.0  /spark/word2vec_project/spark_example/del_ml_word2vec_train.py

@@ -1,0 +1,15 @@
+---
+#- yum: name=https://mirror.webtatic.com/yum/el6/latest.rpm
+#  when: ansible_distribution_major_version == "6"
+#- yum: name=https://mirror.webtatic.com/yum/el7/webtatic-release.rpm
+#  when: ansible_distribution_major_version == "7"
+- name: install nginx
+  yum: name=nginx state=present
+- file: 
+    path: "/etc/nginx/certs/"
+    state: directory
+    recurse: no
+- name: copy certification files
+  copy: src="__tokuapp_com.crt" dest="/etc/nginx/certs/__tokuapp_com.crt"
+- name: copy certification files
+  copy: src="__tokuapp_com.key" dest="/etc/nginx/certs/__tokuapp_com.key"

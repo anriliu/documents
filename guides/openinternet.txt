@@ -1,0 +1,72 @@
+shadowsocks-libev+chinadns+iptables TPROXY+ipset+dnsmasq to proxy all none china ip 
+
+
+
+ Create new chain
+iptables -t nat -N SHADOWSOCKS
+iptables -t mangle -N SHADOWSOCKS
+iptables -t mangle -N SHADOWSOCKS_MARK
+
+ Ignore your shadowsocks server's addresses
+ It's very IMPORTANT, just be careful.
+iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
+
+ Ignore LANs and any other addresses you'd like to bypass the proxy
+ See Wikipedia and RFC5735 for full list of reserved networks.
+ See ashi009/bestroutetb for a highly optimized CHN route list.
+iptables -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 169.254.0.0/16 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 172.16.0.0/12 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
+
+ Anything else should be redirected to shadowsocks's local port
+iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
+
+ Add any UDP rules (TPROXY)
+ip route add local default dev lo table 100
+ip rule add fwmark 1 lookup 100
+iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01  #here we only proxy udp 53 port for dns you can proxy all udp if need and it need the proxy support udp proxying
+iptables -t mangle -A SHADOWSOCKS_MARK -p udp --dport 53 -j MARK --set-mark 1
+
+ Apply the rules
+iptables -t nat -A OUTPUT -p tcp -j SHADOWSOCKS
+iptables -t mangle -A PREROUTING -j SHADOWSOCKS
+iptables -t mangle -A OUTPUT -j SHADOWSOCKS_MARK
+
+ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid #it will be listening on 12345 port
+
+ChinaDNS automatically queries local DNS servers to resolve Chinese domains and queries foreign DNS servers to resolve foreign domains. It is smart enough to work only with a Chinese IP range file
+
+You can generate latest chnroute.txt using this command:
+curl 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' | grep ipv4 | grep CN | awk -F\| '{ printf("%s
+
+vi /etc/dnsmasq.conf to use only 127.0.0.1#5353:
+no-resolv
+server=127.0.0.1#5353
+
+
+shadowsocks-libev+iptables TPROXY+ipset+gfwlist+dnsmasq to proxy all ip from gfwlist
+
+gfwlist which contains most sites blocked by cn
+wget https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt
+
+https://github.com/cokebar/gfwlist2dnsmasq
+generate dnsmask configuration for gfwllist domains to use remote dns server,here we can query from 8.8.8.8 dns server via shadowsocks by tcp or setup pdnsd to query from 8.8.8.8 by tcp directly
+gfwlist2dnsmasq.sh -o /etc/dnsmasq.d/gfwlist.conf
+
+ip route add local default dev lo table 100
+ip rule add fwmark 1 lookup 100
+iptables -t mangle -N SHADOWSOCKS
+iptables -t mangle -N SHADOWSOCKS_MARK
+iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -d 8.8.8.8 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01 
+iptables -t mangle -A SHADOWSOCKS_MARK -p udp --dport 53 -d 8.8.8.8 -j MARK --set-mark 1
+iptables -t mangle -A SHADOWSOCKS -d 127.0.0.0/24 -j RETURN
+iptables -t mangle -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
+
+redirect gfwlist ip tcp traffic to shadowsocks port
+iptables -t nat -I POSTROUTING -m set --set gwlist dst -p tcp -j REDIRECT --to-ports 12345

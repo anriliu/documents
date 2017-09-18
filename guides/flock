@@ -1,0 +1,16 @@
+flock 
+flock(2) it’s used to apply advisory locks to open files. it can be used to synchronize access to resources across multiple running processes. While flock(2) does solely act on files (actually, on file handles), the file itself need not be the resource to which access is being controlled. Instead, the file can be used as a semaphore to control access to a critical section, in which any resource can be accessed without concurrency concerns.
+flock [-sxon][-w #] file [-c] command
+-s, --shared:    获得一个共享锁  
+-x, --exclusive: 获得一个独占锁  
+-u, --unlock:    移除一个锁，通常是不需要的，脚本执行完会自动丢弃锁  
+-n, --nonblock:  如果没有立即获得锁，直接失败而不是等待  
+-w, --timeout:   如果没有立即获得锁，等待指定时间  
+-o, --close:     在运行命令前关闭文件的描述符号。用于如果命令产生子进程时会不受锁的管控  
+-c, --command:   在shell中运行一个单独的命令  
+-h, --help       显示帮助  
+-V, --version:   显示版本  
+
+保证crontab 中只有一个job同时执行
+* * * * * flock -xn /tmp/mytest.lock -c 'php /home/fdipzone/php/test.php >> /home/fdipzone/php/test.log'  
+

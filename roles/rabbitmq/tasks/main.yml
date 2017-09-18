@@ -1,0 +1,14 @@
+---
+- name: install rabbitmq server
+  yum: name=rabbitmq-server state=present
+  notify: start rabbitmq
+- meta: flush_handlers
+- name: add rabbitmq user
+  rabbitmq_user: user={{RABBITMQ.user}}
+                 password={{RABBITMQ.paswd}}
+                 vhost=/
+                 configure_priv=.*
+                 read_priv=.*
+                 write_priv=.*
+                 state=present  
+                 tags=administrator

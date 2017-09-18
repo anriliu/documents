@@ -1,0 +1,10 @@
+---
+- hosts: 172.27.1.3
+  gather_facts: yes
+  vars:
+    - ZABBIX_SERVER: 127.0.0.1
+    - RABBITMQ:
+         user: jone
+         paswd: changeit
+  roles: 
+    - {role: rabbitmq}

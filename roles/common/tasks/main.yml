@@ -1,0 +1,49 @@
+---
+- copy: src=resolv.conf dest=/etc/resolv.conf
+- name: install basic packages
+  yum: name={{ item }} state=latest
+  with_items:
+   - epel-release
+   - wget
+   - unzip
+   - net-tools
+   - curl
+   - libselinux-python
+- file: path=/etc/rc.d/rc.local mode=0755
+- name: install ntp
+  yum: name=ntp state=latest
+  notify: restart ntp
+  tags: ntp
+- name: install zabbix  repo for centos
+  template: src=zabbix.repo.j2 dest=/etc/yum.repos.d/zabbix.repo
+  tags: zabbix  
+- name: install zabbix client
+  yum: name=zabbix-agent state=latest update_cache=yes
+  register: install
+  until: install.rc == 0
+  retries: 5
+  delay: 5
+  tags: zabbix
+  notify: restart zabbix
+- name: copy zabbix configure for mysql monitor
+  copy: dest=/etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf src=userparameter_mysql.conf
+  notify: restart zabbix
+  tags: zabbix
+- replace: dest=/etc/zabbix/zabbix_agentd.conf regexp='^(Server|ServerActive)=.*$' replace='\1={{ ZABBIX_SERVER }}' 
+  notify: restart zabbix
+  tags: zabbix
+- name: disable firewall7
+  service: name=firewalld state=stopped enabled=no
+  when: ansible_distribution_major_version == "7"
+- name: disable firewall6
+  service: name=iptables state=stopped enabled=no
+  when: ansible_distribution_major_version == "6"
+- name: disable selinux
+  lineinfile: dest=/etc/selinux/config regexp="^SELINUX=.*" line="SELINUX=disabled"
+- selinux: state=disabled
+- name: set timezone to UTC
+  file: src=/usr/share/zoneinfo/{{timezone}} dest=/etc/localtime state=link
+  when: timezone is defined
+- name: set hostname
+  hostname: name={{hostname}}
+  when: hostname is defined

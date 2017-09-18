@@ -1,0 +1,21 @@
+---
+- hosts: mysql
+  gather_facts: yes
+  vars:
+    - ZABBIX_SERVER: 127.0.0.1
+    - MYSQLDBS:
+         - user: am_oauth2
+           db: am_oauth2
+           passwd: xxxx323J1
+           hosts:
+            - 'localhost'
+            - '%'
+         - user: ttlt
+           db: ttlt
+           passwd: xxxx
+           hosts:
+            - 'localhost'
+            - '%'
+    - MYSQL_rootpwd: xxxx
+  roles: 
+    - {role: mysql}

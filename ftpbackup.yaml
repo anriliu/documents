@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  gather_facts: no
+#there are two tags in this role one is fullbackup and another one is increasebackup
+  vars:
+#    - DIRS: '/etc /root/ /var/log/' 
+    - ftpuser: 'ftpbackup'
+    - ftppass: 'password'
+    - ftphost: '172.27.0.150'
+  roles: 
+    - {role: backup}

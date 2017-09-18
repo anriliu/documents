@@ -1,0 +1,135 @@
+Prometheus can reload its configuration at runtime. If the new configuration is not well-formed, the changes will not be applied. A configuration reload is triggered by sending a SIGHUP to the Prometheus process or sending a HTTP POST request to the /-/reload endpoint.(same to Alertmanager)
+
+JOBS AND INSTANCES
+In Prometheus terms, any individually scraped target is called an instance, usually corresponding to a single process. A collection of instances of the same type (replicated for scalability or reliability) is called a job.
+job: api-server
+ instance 1: 1.2.3.4:5670
+ instance 2: 1.2.3.4:5671
+ instance 3: 5.6.7.8:5670
+ instance 4: 5.6.7.8:5671
+
+When Prometheus scrapes a target, it attaches some labels automatically to the scraped time series which serve to identify the scraped target:
+job: The configured job name that the target belongs to.
+instance: The <host>:<port> part of the target's URL that was scraped.
+If either of these labels are already present in the scraped data, the behavior depends on the honor_labels configuration option. See the scrape configuration documentation for more information.
+
+For each instance scrape, Prometheus stores a sample in the following time series:
+up{job="<job-name>", instance="<instance-id>"}: 1 if the instance is healthy, i.e. reachable, or 0 if the scrape failed.
+scrape_duration_seconds{job="<job-name>", instance="<instance-id>"}: duration of the scrape.
+scrape_samples_post_metric_relabeling{job="<job-name>", instance="<instance-id>"}: the number of samples remaining after metric relabeling was applied.
+scrape_samples_scraped{job="<job-name>", instance="<instance-id>"}: the number of samples the target exposed.
+The up time series is useful for instance availability monitoring.
+
+METRIC TYPES
+Counter:A counter is a cumulative metric that represents a single numerical value that only ever goes up
+A counter is typically used to count requests served, tasks completed, errors occurred, etc. Counters should not be used to expose current counts of items whose number can also go down,
+Gauge:A gauge is a metric that represents a single numerical value that can arbitrarily go up and down.
+Gauges are typically used for measured values like temperatures or current memory usage, but also "counts" that can go up and down, like the number of running goroutines.
+Histogram:A histogram samples observations (usually things like request durations or response sizes) and counts them in configurable buckets. It also provides a sum of all observed values
+Summary:Similar to a histogram, a summary samples observations (usually things like request durations and response sizes). While it also provides a total count of observations and a sum of all observed values, it calculates configurable quantiles over a sliding time window.
+
+
+
+In Prometheus's expression language, an expression or sub-expression can evaluate to one of four types:
+
+Instant vector - a set of time series containing a single sample for each time series, all sharing the same timestamp
+Range vector - a set of time series containing a range of data points over time for each time series
+Scalar - a simple numeric floating point value
+String - a simple string value; currently unused
+
+
+
+For each timeseries in v,在src_label中查找regex的内容，若是匹配则替换src_label为dst_label，值为replacement(其中可以使用$1,$2表示regex中匹配的group);若不匹配则不做任何修改
+label_replace(v instant-vector, dst_label string, replacement string, src_label string, regex string)
+
+label_replace( sum (rate (container_network_transmit_bytes_total{id!="/"}[1m])) by (id) ,"id_new","$1","id","/?.*/([a-zA-Z0-9-_]+.[a-z]+$)" )
+
+
+
+absent()测试label是够存在
+absent(v instant-vector) 返回空的vector 如果传入的vector存在否则返回a 1-element vector with the value 1 if the vector passed to it has no elements.
+
+
+rate()
+rate(v range-vector) calculates the per-second average rate of increase of the time series in the range vector. 
+过去5分钟内每秒HTTP请求的数量:
+rate(http_requests_total{job="api-server"}[5m])
+rate should only be used with counters. It is best suited for alerting, and for graphing of slow-moving counters.
+
+irate()
+irate(v range-vector) calculates the per-second instant rate of increase of the time series in the range vector. 
+irate should only be used when graphing volatile, fast-moving counters. Use rate for alerts and slow-moving counters, as brief changes in the rate can reset the FOR clause and graphs consisting entirely of rare spikes are hard to read.
+
+
+and (intersection)
+vector1 and vector2返回两个向量中的lable完全匹配的条目The metric name and values are carried over from the left-hand-side vector.
+or (union)
+vector1 or vector2返回1中的所有元素以及2中不与1 中label匹配的元素 results in a vector that contains all original elements (label sets + values) of vector1 and additionally all elements of vector2 which do not have matching label sets in vector1.
+unless (complement)
+vector1 unless vector2 返回1和2向量中label不完全匹配的元素
+
+Vector matching:
+Operations between vectors attempt to find a matching element in the right-hand-side vector for each entry in the left-hand side. There are two basic types of matching behavior:
+One-to-one finds a unique pair of entries from each side of the operation. In the default case, that is an operation following the format vector1 <operator> vector2. Two entries match if they have the exact same set of labels (一对一匹配,两条记录只有当拥有完全相同的lable，同类的value时才匹配，可以用ignoring关键字在匹配时来忽略掉某些lable，也可以用on关键字指定只对哪些lable进行匹配)
+method_code:http_errors:rate5m{method="get", code="500"}  24
+method_code:http_errors:rate5m{method="get", code="404"}  30
+method:http_requests:rate5m{method="get"}  600
+method:http_requests:rate5m{method="del"}  34
+
+method_code:http_errors:rate5m{code="500"} / ignoring(code) method:http_requests:rate5m
+method_code:http_errors:rate5m{code="500"} / on(method) method:http_requests:rate5m
+
+
+Many-to-one and one-to-many matchings refer to the case where each vector element on the "one"-side can match with multiple elements on the "many"-side. This has to be explicitly requested using the group_left or group_right modifier, where left/right determines which vector has the higher cardinality.(lgroup_eft,group_right分别表示匹配时候以左边,右边的记录为准,最终结果也显示左边，右边的labels)
+<vector expr> <bin-op> ignoring(<label list>) group_left(<label list>) <vector expr>
+<vector expr> <bin-op> ignoring(<label list>) group_right(<label list>) <vector expr>
+<vector expr> <bin-op> on(<label list>) group_left(<label list>) <vector expr>
+<vector expr> <bin-op> on(<label list>) group_right(<label list>) <vector expr>
+
+method_code:http_errors:rate5m / ignoring(code) group_left method:http_requests:rate5m
+sum(count(kube_pod_container_status_ready == 0) BY (pod) + ON(pod) GROUP_RIGHT() kube_pod_info) BY (pod, host_ip, namespace)
+
+
+
+Recording rules:
+Recording rules allow you to precompute frequently needed or computationally expensive expressions and save their result as a new set of time series. 
+To add a new recording rule, add a line of the following syntax to your rule file:
+<new time series name>[{<label overrides>}] = <expression to record> 
+# Saving the per-job HTTP in-progress request count as a new set of time series:
+job:http_inprogress_requests:sum = sum(http_inprogress_requests) by (job)
+
+# Drop or rewrite labels in the result time series:
+new_time_series{label_to_change="new_value",label_to_drop=""} = old_time_series
+
+Recording rules are evaluated at the interval specified by the evaluation_interval field in the Prometheus configuration. 
+
+Alerting rules are defined in the following syntax:
+ALERT <alert name>
+  IF <expression>
+  [ FOR <duration> ]
+  [ LABELS <label set> ]
+  [ ANNOTATIONS <label set> ]
+The optional FOR clause causes Prometheus to wait for a certain duration between first encountering a new expression output vector element
+The LABELS clause allows specifying a set of additional labels to be attached to the alert. Any existing conflicting labels will be overwritten. The label values can be templated.
+The ANNOTATIONS clause specifies another set of labels that are not identifying for an alert instance. They are used to store longer additional information such as alert descriptions or runbook links. The annotation values can be templated.
+
+The $labels variable holds the label key/value pairs of an alert instance and $value holds the evaluated value of an alert instance.
+Example:
+# Alert for any instance that is unreachable for >5 minutes.
+ALERT InstanceDown
+  IF up == 0
+  FOR 5m
+  LABELS { severity = "page" }
+  ANNOTATIONS {
+    summary = "Instance {{ $labels.instance }} down",
+    description = "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes.",
+  }
+
+# Alert for any instance that have a median request latency >1s.
+ALERT APIHighRequestLatency
+  IF api_http_request_latencies_second{quantile="0.5"} > 1
+  FOR 1m
+  ANNOTATIONS {
+    summary = "High request latency on {{ $labels.instance }}",
+    description = "{{ $labels.instance }} has a median request latency above 1s (current value: {{ $value }}s)",
+  }

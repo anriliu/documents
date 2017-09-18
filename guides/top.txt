@@ -1,0 +1,49 @@
+top 
+
+To get a list of the columns with which you can sort the top command by type the following:
+top -O 
+
+To sort by %CPU type the following:
+top -o %CPU
+
+
+Adding Extra Columns To The Top Display
+Whilst running top you can press the 'F' key which shows the list of fields that can be displayed in the table:
+
+
+Key Switches For The Top Command:
+-h - Show the current version
+-c - This toggles the command column between showing command and program name
+-d - Specify the delay time between refreshing the screen
+-o - Sorts by the named field
+-p - Only show processes with specified process IDs
+-u - Show only processes by the specified user
+-i - Do not show idle tasks
+-n Specifies the maximum number of iterations
+
+Change The Display Whilst Running Top
+Whilst the top command is running you can toggle many of the features on and off by pressing relevant keys whilst it is running.
+
+The following table shows the key to press and the function it provides:
+
+Function Keys
+Function Key	Description
+A	Alternative display (default off)
+d	Refresh screen after specified delay in seconds (default 1.5 seconds)
+H	Threads mode (default off), summarises tasks
+p	PID Monitoring (default off), show all processes
+B	Bold enable (default on), values are shown in bold text
+l	Display load average (default on)
+t	Determines how tasks are displayed (default 1+1)
+m	Determines how memory usage is displayed (default 2 lines)
+1	Single cpu (default off) - i.e. shows for multiple CPUs
+J	Align numbers to the right (default on)
+j	Align text to the right (default off)
+R	Reverse sort (default on) - Highest processes to lowest processes
+S	Cumulative time (default off) 
+u	User filter (default off) show euid only
+U	User filter (default off) show any uid 
+V	Forest view (default on) show as branches
+x	Sorted Column highlight (default off) 
+z	Color or mono (default on) show colors 
+k        You will be prompted for a PID and then the signal to send,default signal is SIGTERM

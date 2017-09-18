@@ -1,0 +1,29 @@
+---
+- name: install mysql5.7 repository
+  yum: name=http://repo.mysql.com/yum/mysql-5.7-community/el/{{ansible_distribution_major_version}}/x86_64/mysql57-community-release-el{{ansible_distribution_major_version}}-7.noarch.rpm state=present
+- name: install mysql5.7 server
+  yum: name={{item}} state=present
+  with_items:
+     - mysql-community-server
+     - MySQL-python 
+- stat: path=/var/lib/mysql/mysql   
+  register: mysql_stat
+- name: init mysqldb
+  command: mysqld --initialize-insecure --user=mysql
+  when: mysql_stat.stat.exists == False
+  notify: start mysqldb
+- meta: flush_handlers
+- stat: path=/var/lib/mysql/root
+  register: root_stat
+- mysql_db: name=root state=present
+  when: root_stat.stat.isdir is not defined
+- name: update root passwd
+  mysql_user: name=root password={{MYSQL_rootpwd}}
+  when: root_stat.stat.isdir is not defined
+- mysql_db: name={{item.db}} state=present login_user=root login_password={{MYSQL_rootpwd}}
+  with_items: "{{MYSQLDBS}}"
+- name: add mysql user for dbs
+  mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name={{item.0.user}} password={{item.0.passwd}} priv={{item.0.db}}.*:ALL host={{item.1}} state=present
+  with_subelements:
+      - "{{MYSQLDBS}}"
+      - hosts

@@ -1,0 +1,104 @@
+---
+- hosts: all
+  remote_user: root
+  gather_facts: yes
+  tasks:
+  - file: path=/etc/rc.d/rc.local mode=0755
+    tags: always
+  - name: remove old zabbix
+    yum: name={{ item }} state=absent 
+    with_items: 
+    - zabbix-release 
+    - zabbix-agent
+    - zabbix
+    tags: zabbixclient
+  - name: install ntp for centos7
+    yum: name=ntp state=present
+    when: ansible_distribution_major_version == "7"
+    register: install7
+    until: install7.rc==0
+    retries: 5
+    delay: 5
+    tags: always
+  - name: install ntp for centos6
+    yum: name=ntp state=present
+    when: ansible_distribution_major_version == "6"
+    register: install6
+    until: install6.rc==0
+    retries: 5
+    delay: 5
+    tags: always
+  - name: start ntp service
+    service: name=ntpd state=started enabled=yes
+    tags: alway
+  - name: install zabbix  repo for centos7
+    yum: name=http://repo.zabbix.com/zabbix/3.2/rhel/7/x86_64/zabbix-release-3.2-1.el7.noarch.rpm state=present
+    when: ansible_distribution_major_version == "7"
+    register: install7
+    until: install7.rc==0 
+    retries: 5
+    delay: 5
+    tags: zabbixclient
+  - name: install zabbix  repo for centos6
+    yum: name=http://repo.zabbix.com/zabbix/3.2/rhel/6/x86_64/zabbix-release-3.2-1.el6.noarch.rpm state=present
+    when: ansible_distribution_major_version == "6"
+    register: install6
+    until: install6.rc==0
+    retries: 5
+    delay: 5
+    tags: zabbixclient
+  - name: install lastest zabbix
+    yum: name=zabbix-agent state=latest update_cache=yes
+    register: install
+    until: install.rc==0
+    retries: 5
+    delay: 5
+    tags: zabbixclient
+  - name: update hostname in zabbix configuration
+#    shell: sed -i "s/127.0.0.1/{{ zabbixserver }}/g;s/Hostname=Zabbix server/Hostname=`hostname`/g" /etc/zabbix/zabbix_agentd.conf
+    lineinfile: dest=/etc/zabbix/zabbix_agentd.conf regexp='^Hostname=' line="Hostname={{ ansible_hostname }}"
+    tags: zabbixclientip
+  - name: update server ip in zabbix configuration
+    lineinfile: dest=/etc/zabbix/zabbix_agentd.conf regexp='^Server=' line="Server={{ zabbixserver }}"
+    notify: restart zabbix
+    tags: zabbixclientip
+  - name: download zabbix docker module for centos7
+    get_url: url=https://github.com/monitoringartist/zabbix-docker-monitoring/raw/gh-pages/centos7/3.2/zabbix_module_docker.so dest=/etc/zabbix/zabbix_module_docker.so mode=0755
+    when: ansible_distribution_major_version == "7"
+    tags: zabbixdocker
+  - name: download zabbix docker module for centos6
+    get_url: url=https://github.com/monitoringartist/zabbix-docker-monitoring/raw/gh-pages/centos6/3.2/zabbix_module_docker.so dest=/etc/zabbix/zabbix_module_docker.so mode=0755
+    when: ansible_distribution_major_version == "6"
+    tags: zabbixdocker
+  - lineinfile: dest=/etc/zabbix/zabbix_agentd.conf line="LoadModulePath=/etc/zabbix"
+    tags: zabbixdocker
+  - name: load docker module 
+    lineinfile: dest=/etc/zabbix/zabbix_agentd.conf line="LoadModule=zabbix_module_docker.so"
+    notify: restart zabbix
+    tags: zabbixdocker
+  - name: repartition /dev/vda 
+    script: ./fdisk.sh removes=/dev/vda
+    register: vda
+    tags: format
+    notify: restart server
+  - name: add vdb partition
+    filesystem: fstype=ext4 dev=/dev/vdb force=yes
+    ignore_errors: True
+    register: vdb
+    tags: format
+  - name: mount vdb
+    mount: name=/data src=/dev/vdb fstype=ext4 opts=noatime state=present
+    when: vdb.changed
+    tags: format
+  - name: disable selinux
+    selinux: state=disabled
+#  - name: format filesystem
+#    filesystem: fstype=ext3 dev=/dev/vdb1 force=yes
+#    when: vda.rc==0 | vdb.changed
+#    notify: restart server
+  handlers:
+  - name: restart zabbix
+    service: name=zabbix-agent state=restarted enabled=True
+  - name: restart server
+    command: /sbin/reboot
+...

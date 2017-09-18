@@ -1,0 +1,25 @@
+---
+- name: copy mongo 3.4 serve rpm repository
+  copy: src="mongodb.repo" dest="/etc/yum.repos.d/mongodb.repo"  
+- name: install mongodb server
+  yum: name={{item}} state=present
+  with_items:
+     - mongodb-org
+- name: install pymongo
+  pip: name=pymongo state=latest executable=pip
+- name: update mongodb configuration
+  lineinfile: dest=/etc/mongod.conf  regexp='^(.*bindIp.) 127.0.0.1' line='\1 0.0.0.0' backrefs=yes
+  notify: restart mongodb
+- meta: flush_handlers
+- name: add mongodb user for admin
+  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database='admin' name={{DBLOGIN.user}} password={{DBLOGIN.passwd}} roles='root' state=present
+  retries: 3
+  delay: 2
+- name: add mongodb user for new db
+  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database={{MONGO_new.db}} name={{MONGO_new.user}} password={{MONGO_new.passwd}} roles={{MONGO_new.roles}} state=present
+- name: enable auth
+  replace:
+   path: /etc/mongod.conf
+   regexp: '^#security:'
+   replace: 'security: \n  authorization: enabled'
+  notify: restart mongodb

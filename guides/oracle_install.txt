@@ -1,0 +1,107 @@
+#if no swap space 
+#dd if=/dev/zero of=/opt/swap bs=1G count=1 oflag=dsync  
+#mkswap /opt/swap&&chmod 600 /opt/swap&&swapon /opt/swap
+yum install -y binutils compat-libcap1  compat-libstdc++-33  gcc gcc-c++ glibc glibc glibc-devel glibc-devel ksh libgcc libgcc libstdc++ libstdc++ libstdc++-devel libstdc++-devel libaio libaio libaio-devel libaio-devel libXext libXext libXtst libXtst libX11 libX11 libXau libXau libxcb libxcb libXi libXi make sysstat
+
+groupadd oinstall
+groupadd dba
+useradd -g oinstall -G dba oracle
+mkdir -p /data/u01
+chown -R oracle:oinstall /data/
+
+cat <<! > /home/oracle/.bash_profile 
+
+export ORACLE_UNQNAME=orcl12c
+export ORACLE_BASE=/data/u01/oracle
+export ORACLE_HOME=\$ORACLE_BASE/product/12.2.0/db_1
+export ORACLE_SID=orcl12c
+export PATH=/usr/sbin:\$PATH:\$ORACLE_HOME/bin
+export LD_LIBRARY_PATH=\$ORACLE_HOME/lib:/lib:/usr/lib;
+export CLASSPATH=\$ORACLE_HOME/jlib:\$ORACLE_HOME/rdbms/jlib;
+!
+
+cat <<! >>/etc/security/limits.conf
+oracle soft nofile 65536
+oracle hard nofile 65536
+oracle soft nproc 16384
+oracle hard  nproc 16384
+oracle soft stack 10240
+oracle hard  stack 10240
+oracle soft memlock 14700470  #at least 90 percent of the current RAM 
+oracle hard   memlock 14700470
+!
+
+cat <<! >>/etc/sysctl.conf
+fs.aio-max-nr = 1048576
+fs.file-max = 6815744
+kernel.shmall = 2097152 #shmall 的大小为 shmmax/PAGESIZE(getconf PAGESIZE可得到)
+kernel.shmmax = 536870912 #shmmax 是单个段允许使用的大小,可以设置为内存的 90%,free -b可得到总的内存大小
+kernel.shmmni = 4096
+kernel.sem = 250 32000 100 128
+net.ipv4.ip_local_port_range = 9000 65500
+net.core.rmem_default = 262144
+net.core.rmem_max = 4194304
+net.core.wmem_default = 262144
+net.core.wmem_max = 1048586
+!
+
+
+cat <<! > db_install.rsp 
+
+oracle.install.responseFileVersion=/oracle/install/rspfmt_dbinstall_response_schema_v12.2.0
+oracle.install.option=INSTALL_DB_SWONLY
+ORACLE_HOSTNAME=uloracle 
+UNIX_GROUP_NAME=oinstall                            
+INVENTORY_LOCATION=/data/u01/orainv                 
+SELECTED_LANGUAGES=en                               
+ORACLE_HOME=/data/u01/oracle/product/12.2.0/db_1                       
+ORACLE_BASE=/data/u01/oracle                       
+oracle.install.db.InstallEdition=EE
+oracle.install.db.DBA_GROUP=dba  
+oracle.install.db.OPER_GROUP=dba  
+oracle.install.db.BACKUPDBA_GROUP=dba  
+oracle.install.db.DGDBA_GROUP=dba  
+oracle.install.db.KMDBA_GROUP=dba  
+oracle.install.db.isRACOneInstall=false  
+oracle.install.db.OSRACDBA_GROUP=dba
+SECURITY_UPDATES_VIA_MYORACLESUPPORT=false  
+DECLINE_SECURITY_UPDATES=true  
+oracle.installer.autoupdates.option=SKIP_UPDATES
+!
+
+
+
+./runInstaller -silent -responseFile /data/database/response/db_install.rsp
+
+cat <<! > netca.rsp 
+
+[GENERAL]
+RESPONSEFILE_VERSION="12.2"
+CREATE_TYPE="CUSTOM"
+[oracle.net.ca]
+INSTALLED_COMPONENTS={"server","net8","javavm"}
+INSTALL_TYPE=""typical""
+LISTENER_NUMBER=1
+LISTENER_NAMES={"LISTENER"}
+LISTENER_PROTOCOLS={"TCP;1521"}
+LISTENER_START=""LISTENER""
+NAMING_METHODS={"TNSNAMES","ONAMES","HOSTNAME"}
+NSN_NUMBER=1
+NSN_NAMES={"EXTPROC_CONNECTION_DATA"}
+NSN_SERVICE={"PLSExtProc"}
+NSN_PROTOCOLS={"TCP;HOSTNAME;1521"}
+!
+
+netca -silent -responsefile /home/digoal/netca.rsp 
+
+lsnrctl status
+
+dbca -silent -createDatabase -templateName General_Purpose.dbc -gdbname orcl12c -sid orcl12c -responseFile NO_VALUE -characterSet AL32UTF8 -memoryPercentage 30 -emConfiguration LOCAL
+
+
+update /etc/oratab so that dbstart can work properly
+
+sqlplus / as sysdba
+show parameter name;
+select name from v$datafile;
+

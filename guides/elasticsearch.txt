@@ -1,0 +1,120 @@
+prepare os configurations b4 production:
+vm.max_map_count=262144 #must higher than this
+
+Disable swap:
+swapoff -a or set vm.swappiness=1
+
+and also increase ulimit nofile
+
+condigurations in elasticsearch.yml:
+discovery.zen.ping.unicast.hosts: 192.168.168.21:32701  #cluster peer ip and port,default port is transport.tcp.port 9300
+cluster.name=: mynewclustername   #cluster name
+xpack.security.enabled: false #disable security
+discovery.zen.minimum_master_nodes: 1
+network.host: 0.0.0.0
+
+View Cluster status:
+curl -XGET "192.168.1.101:9200/_cat/heath?v"
+
+View nodes detail in cluster:
+curl -XGET "192.168.1.101:9200/_cat/nodes?v"
+
+View All Indexes:
+curl -XGET "192.168.1.101:9200/_cat/indices?v"
+
+
+Create index with mapping and settings:
+curl -XPUT "192.168.1.101:9200/index_test" -d ' # 注意这里的'号
+{
+  "settings": {
+    "index": {
+      "number_of_replicas": "1", # 设置复制数
+      "number_of_shards": "5" # 设置主分片数
+    }
+  },
+  "mappings": { # 创建mapping
+    "test_type": { # 在index中创建一个新的type(相当于table)
+      "properties": {
+        "name": { # 创建一个字段（string类型数据，使用普通索引）
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "age": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}'
+You can also create pre-define mapping of index by create configuration file at $ES_HOME/config/mapping/index_name/type_name.json with below content:
+
+{
+  "test_type": { # 注意，这里的test_type与json文件名必须一致
+      "properties": {
+        "name": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "age": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+
+then curl -XPUT "192.168.1.101:9200/index_test" # 注意，这里的索引名必须与mappings下新建的index_test目录名一致
+
+
+
+View mapping:
+curl -XGET 'localhost:9200/index_test/_mapping/test_type'
+
+Delete mapping:
+curl -XDELETE 'localhost:9200/index_test/_mapping/test_type'
+
+Delete index:
+curl -XDELETE "192.168.1.101:9200/index_test"
+
+Add a document:
+curl -XPUT '192.168.1.101:9200/index_test/test_type/1?pretty' -d ' # 这里的pretty参数的作用是使得返回的json显示地更加好看。1是文档的id值（唯一键）。
+{
+    "name": "zhangsan",
+    "age" : "12"
+}'
+
+View document:
+curl -XGET '192.168.1.101:9200/index_test/test_type/1?pretty'
+
+
+Update a document:
+curl -XPOST '192.168.1.101:9200/index_test/test_type/1?pretty' -d ' # 这里的1必须是索引中已经存在id，否则就会变成新增文档操作
+{
+    "name": "lisi",
+    "age" : "12"
+}'
+
+View Cluster status:
+curl -XGET '192.168.168.101:9200/_cluster/health?pretty
+http://192.168.168.21:32600/_cluster/health?pretty
+
+
+
+
+
+run elasticsearch in docker:
+#!/bin/bash
+#first_port1=32600 first_port2=32601 second_port1=32700 second_port2=32701 first_dpath=/tmp/es601 second_dpath=/tmp/es701 clustername=ozcluster
+eval $@
+
+if  [[ -n clustername && -n $first_port1 && -n $first_port2 && -n $second_port1 && -n $second_port2 && -n $first_dpath && -n $second_dpath ]] 
+then
+:
+else
+echo "This script will run two nodes elasticsearch cluster on single physical host with docker so you have to pre-define the data path and expose port for each docker container
+Usage: ./$0 first_port1=http_port2 first_port2=transport_port2 second_port1=http_port2 second_port2=transport_port2 first_dpath=fulldatapath1 second_dpath=fulldatapath2 clustername=cluster_name "&&exit 1
+fi
+
+test `ss -tl src  :$first_port1 or src :$first_port2 or src :$second_port1 or src :$second_port2|wc -l` -eq 1||{ echo pls specify non-listening ports&&exit ;}
+
+docker run -d -e "cluster.name=$clustername" -e "xpack.security.enabled=false" -e "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" -v $first_dpath:/usr/share/elasticsearch/data  -e "discovery.zen.ping.unicast.hosts=localhost:${second_port2}" -p ${first_port1}:9200 -p ${first_port2}:9300  docker.elastic.co/elasticsearch/elasticsearch:5.5.1
+docker run -d  -e "cluster.name=$clustername" -e "xpack.security.enabled=false" -e "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" -v ${second_dpath}:/usr/share/elasticsearch/data  -e "discovery.zen.ping.unicast.hosts=localhost:${first_port2}" -p ${second_port1}:9200 -p ${second_port2}:9300  docker.elastic.co/elasticsearch/elasticsearch:5.5.1

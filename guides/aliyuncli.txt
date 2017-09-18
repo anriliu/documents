@@ -1,0 +1,42 @@
+With aliyuncli you can do most management tasks from commandline
+pip install aliyuncli
+必须安装了sdk才能执行相关的操作,完整的sdk列表https://help.aliyun.com/document_detail/30003.html?spm=5176.doc29995.2.1.2a2c8K:
+pip install aliyun-python-sdk-rds
+
+添加命令自动补全:
+complete -C `which aliyun_completer` aliyuncli
+
+aliyun configure
+
+#to get all instance id, public ip and security group id
+aliyuncli ecs DescribeInstances  --filter Instances.Instance[*].[InstanceId,SecurityGroupIds.SecurityGroupId[0],PublicIpAddress.IpAddress[0]] --output text
+
+
+#find out security group id of instance which we knew its public IP
+aliyuncli ecs DescribeInstances --PublicIpAddresses "['$IP']" --filter Instances.Instance[*].SecurityGroupIds.SecurityGroupId[0]
+aliyuncli ecs DescribeInstances --PublicIpAddresses "['$IP']" --filter Instances.Instance[*].SecurityGroupIds.SecurityGroupId --output text
+
+#with jq to find out security group id of instance which we knew its public IP
+aliyuncli ecs DescribeInstances |jq  ".Instances.Instance[]|{id: .InstanceId,sg: .SecurityGroupIds.SecurityGroupId[],ip: .PublicIpAddress.IpAddress[]}|select(.ip == \"$IP\")|.sg"
+
+#get opened port of security
+aliyuncli ecs DescribeSecurityGroupAttribute --SecurityGroupId $SG --Direction ingress  --filter Permissions.Permission[*].[IpProtocol,PortRange,SourceCidrIp] --output tex
+t
+#combine two cmds to get opening ports of instance by ip
+SG=$(aliyuncli ecs DescribeInstances --PublicIpAddresses "['$IP']" --filter Instances.Instance[*].SecurityGroupIds.SecurityGroupId --output text)
+aliyuncli ecs DescribeSecurityGroupAttribute --SecurityGroupId $SG --Direction ingress  --filter Permissions.Permission[*].[IpProtocol,PortRange] --output text
+
+#add free egress access policy 
+aliyuncli ecs AuthorizeSecurityGroupEgress --SecurityGroupId $SG --PortRange -1/-1  --DestCidrIp 0.0.0.0/0 --IpProtocol ALL
+
+#revoke egree policy
+aliyuncli ecs RevokeSecurityGroupEgress --SecurityGroupId $SG --PortRange -1/-1  --DestCidrIp 0.0.0.0/0 --IpProtocol ALL
+
+
+#authorize ingress policy by source security id
+aliyuncli ecs AuthorizeSecurityGroup --IpProtocol ALL --PortRange -1/-1  --SecurityGroupId $SG  --SourceGroupId $SRC_SG 
+aliyuncli ecs RevokeSecurityGroup --IpProtocol ALL --PortRange -1/-1  --SecurityGroupId $SG  --SourceGroupId $SRC_SG
+
+#authorize ingress policy by source ip range
+aliyuncli ecs RevokeSecurityGroup --IpProtocol TCP --PortRange 22/22  --SecurityGroupId $SG  --SourceCidrIp 0.0.0.0/0
+

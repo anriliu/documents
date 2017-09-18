@@ -1,0 +1,64 @@
+enable auth:
+1.create super admin
+use admin
+db.createUser(
+  {
+    user: "myUserAdmin",
+    pwd: "abc123",
+    roles: [ { role: "root", db: "admin" } ]
+  }
+)
+
+vi  /etc/mongod.conf 
+
+security:
+   authorization: enabled
+
+2. create db owner for specified db
+mongo --port 27017 -u "myUserAdmin" -p "abc123" --authenticationDatabase "admin"
+or 
+use admin
+db.auth("myUserAdmin", "abc123" )
+then
+
+use mydb
+db.createUser(
+  {
+    user: "myTester",
+    pwd: "xyz123",
+    roles: [ { role: "dbOwner", db: "mydb" } ]
+  }
+)
+
+db.createUser(
+  {
+    user: "myTester",
+    pwd: "xyz123",
+    roles: [ { role: "readWrite", db: "test" },
+             { role: "read", db: "reporting" } ]
+  }
+)
+
+
+mongodump以bson格式备份数据库或者collections,备份后的文件可以通过mongorestore来恢复：
+mongodump  --db test
+mongodump  --db test --collection collection
+mongodump --host mongodb1.example.net --port 37017 --username user --password pass --out /opt/backup/mongodump-2011-10-24
+
+mongorestore --collection people --db accounts dump/accounts/people.bson
+mongorestore --host mongodb1.example.net --port 37017 --username user --password pass /opt/backup/mongodump-2011-10-24
+
+mongoexport可以以json或者csv格式导出数据库中的某个collection，然后通过mongoimport导入:
+mongoexport --db users --collection contacts --csv --fieldFile fields.txt --out /opt/backups/contacts.csv
+mongoexport --db sales --collection contacts --out contacts.json --journal
+
+
+可以通过下面的方式来导出所有的collections:
+for c in `mongo --quiet $host:$port/$db --eval 'db.getCollectionNames()' | sed 's/,/ /g'`
+do
+    mongoexport --host $host --port $port -d $db -c $c > $c.json
+done
+mongoexport -d test -c records -q "{ a: { \$gte: 3 } }" --out exportdir/myRecords.json
+mongoimport --db users --collection contacts --type csv --headerline --file /opt/backups/contacts.csv
+如果没有指定-c 那么会以文件名为collectoin name
+mongoimport --db users --type csv --headerline --file /opt/backups/contacts.csv

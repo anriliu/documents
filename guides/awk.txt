@@ -1,0 +1,3 @@
+print the lines next or before to the matched content by awk array
+awk '{a[NR]=$0;if(a[NR-1]~/Query_time: [2-9]/){print a[NR-1],"\n",a[NR]}}' /home/mysql/data/ozdata-slow.log
+also can be down by grep with -C, -A, -B option

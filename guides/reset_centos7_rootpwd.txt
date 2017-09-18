@@ -1,0 +1,27 @@
+1.Start the system and, on the GRUB 2 boot screen, press the e key for edit.
+
+2.Remove the rhgb and quiet parameters from the end, or near the end, of the linux16 line, or linuxefi on UEFI systems.
+
+3.Add ‘rd.break enforcing=0’ at the end of the linux line on 64-Bit IBM Power Series, the linux16 line on x86-64 BIOS-based systems, or the linuxefi line on UEFI systems
+
+4.Press Ctrl+x to boot the system with the changed parameters.
+
+5.Remount the file system as writable:
+switch_root:/# mount -o remount,rw /sysroot
+
+6.Change the file system's root as follows:
+switch_root:/# chroot /sysroot
+
+7.Enter the passwd command and follow the instructions displayed on the command line to change the root password.
+
+8.Updating the password file results in a file with the incorrect SELinux security context. 
+sh-4.2# touch /.autorelabel
+
+9.Remount the file system as read only:
+sh-4.2# mount -o remount,ro /
+
+10.Enter the exit command to exit the chroot environment and wait system boot
+
+
+11.If you added the enforcing=0 option in step 3 and omitted the touch /.autorelabel command in step 8, enter the following command to restore the /etc/shadow file's SELinux security context:
+~]# restorecon /etc/shadow

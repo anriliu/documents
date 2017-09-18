@@ -1,0 +1,95 @@
+sysdig 
+Think of sysdig as strace + tcpdump + htop + iftop + lsof + transaction tracing + awesome sauce. With state of the art container visibility on top.
+https://www.sysdig.org/ 
+
+
+找到影响程序运行时间的函数调用，再有针对地对相关函数进行代码分析和优化
+将strace和pstack工具结合起来使用，就可以达到以上目的。strace跟踪程序使用的底层系统调用，可输出系统调用被执行的时间点以及各个调用耗时；pstack工具对指定PID的进程输出函数调用栈。
+strace查看系统调用
+strace -o server.strace -Ttt -p 16739
+14:46:40.740853 nanosleep({1, 0}, {1, 0}) = 0 <1.000276>
+14:46:41.741284 sendto(4, "hello\0", 6, 0, NULL, 0) = 6 <0.000111>
+可以看到server接收数据之后(对应recvfrom调用)，经过1s左右时间将消息发出(对应sendto调用)，从响应时间看，与抓包的结果吻合。又可以看出nanosleep系统调用耗费了1s时间.
+
+pstack查看函数堆栈
+pstack是一个脚本工具，其核心实现就是使用了gdb以及thread apply all bt命令，下面我们使用pstack查看server进程函数堆栈：
+pstack 16739
+#0 0x00002ba1f8152650 in __nanosleep_nocancel () from /lib64/libc.so.6
+#1 0x00002ba1f8152489 in sleep () from /lib64/libc.so.6
+#2 0x00000000004007bb in ha_ha ()
+#3 0x0000000000400a53 in main ()
+从以上信息可以看出，函数调用关系为：main->ha_ha->sleep，因而我们可以找到ha_ha函数进行分析和优化修改。
+
+
+top+jstack 检查java进程性能消耗点
+1.top -H 找出最消耗cpu线程或者进程id（比如3122）
+2.jstack 进程id >>jstack.log（比如3100）
+3. echo 'obase=16;3122'|bc   转换为16进制（C32）,因为jstack打印的日志中所有线程 ID 都是 16 进制表示的
+4.fgrep C32 jstack.log 在jstack生产的日志中查找1中找出
+
+
+perf
+对于一个指定的性能事件(默认是CPU周期)，显示消耗最多的函数或指令。
+
+perf-list
+Perf-list用来查看perf所支持的性能事件，有软件的也有硬件的.
+perf list [hw | sw | cache | tracepoint | event_glob]
+
+perf top主要用于实时分析各个函数在某个性能事件上的热度，能够快速的定位热点函数，包括应用程序函数、模块函数与内核函数，甚至能够定位到热点指令。默认的性能事件为cpu cycles。
+通过-e指定性能事件以及其他属性
+perf top -e cycles:k
+显示分配高速缓存最多的函数:
+perf top -e kmem:kmem_cache_alloc
+常用命令行参数
+-e <event>：指明要分析的性能事件。
+-p <pid>：Profile events on existing Process ID (comma sperated list). 仅分析目标进程及其创建的线程。
+-k <path>：Path to vmlinux. Required for annotation functionality. 带符号表的内核映像所在的路径。
+-K：不显示属于内核或模块的符号。
+-U：不显示属于用户态程序的符号。
+-d <n>：界面的刷新周期，默认为2s，因为perf top默认每2s从mmap的内存区域读取一次性能数据。
+-G：得到函数的调用关系图。
+perf top -G [fractal]，路径概率为相对值，加起来为100%，调用顺序为从下往上。
+perf top -G graph，路径概率为绝对值，加起来为该函数的热度。 
+
+
+使用例子
+# perf top // 默认配置
+# perf top -G // 得到调用关系图
+# perf top -e cycles // 指定性能事件
+# perf top -p 23015,32476 // 查看这两个进程的cpu cycles使用情况
+# perf top -s comm,pid,symbol // 显示调用symbol的进程名和进程号
+# perf top --comms nginx,top // 仅显示属于指定进程的符号
+# perf top --symbols kfree // 仅显示指定的符号
+
+
+perf-record
+收集采样信息，并将其记录在数据文件中,随后可以通过其它工具(perf-report)对数据文件进行分析，结果类似于perf-top.
+Run a command and record its profile into perf.data.
+This command runs a command and gathers a performance counter profile from it, into perf.data,
+without displaying anything. This file can then be inspected later on, using perf report.
+记录nginx进程的性能数据：
+# perf record -p `pgrep -d ',' nginx`
+记录执行ls时的性能数据：
+# perf record ls -g
+记录执行ls时的系统调用，可以知道哪些系统调用最频繁：
+# perf record -e syscalls:sys_enter ls
+
+perf-report
+读取perf record创建的数据文件，并给出热点分析结果.
+perf report -i perf.data.2
+
+
+perf-stat
+Run a command and gather performance counter statistics.
+perf stat [-e <EVENT> | --event=EVENT] [-a] <command>
+perf stat ls
+
+
+
+perf-lock
+内核锁的性能分析.
+
+
+perf-kmemo
+Tool to trace/measure kernel memory(slab) properties.
+slab分配器的性能分析.

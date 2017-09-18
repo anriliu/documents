@@ -1,0 +1,158 @@
+---
+- hosts: all
+  gather_facts: no
+  tasks:
+  - name: 'check parm is null or invalid'
+    fail: msg="Please remember to add tags"
+    when: "settags is not defined"
+    tags: always
+#  - name: 'get previous db folder name'
+#    shell: ls -1t -d /opt/db*|head -n 2|tail -1
+#    register: pre_db
+#    tags: db
+  - name: find out latest web folder name
+    shell: ls -1t -d /usr/share/nginx/web*|head -n 1
+    register: now_web
+    tags: web
+  - name: get previous web folder name
+    shell: ls -1t -d /usr/share/nginx/web*|head -n 2|tail -1
+    register: pre_web
+    tags: web
+  - name: link to previous web
+    file: src={{pre_web.stdout}}/hrx dest=/usr/share/nginx/hrx state=link force=yes
+    tags: web
+    when: pre_web.stdout != "" and now_web.stdout != pre_web.stdout
+    notify:
+      - restart nginx service
+  - name: find out latest version backend deployment
+    shell: ls -1t -d /opt/backend*|head -n 1
+    register: now_backend
+    tags: backend
+  - name: find out latest version api deployment
+    shell: ls -1t -d /opt/api*|head -n 1
+    register: now_api
+    tags: api
+  - name: get previous api deployment folder name
+    shell: ls -1t -d /opt/api*|head -n 2|tail -1
+    register: pre_api
+    tags: api
+  - name: get previous api version and start it if possibile
+    tags: api
+    shell: ls -rt {{ pre_api.stdout }}/*.jar
+    when: pre_api.stdout != "" and now_api.stdout != pre_api.stdout
+    register: apiversion
+    changed_when: apiversion.stdout_lines[1] is defined
+    notify:
+      - stop api
+      - api version
+      - start api
+      - wait for stopping
+      - wait for starting
+  - name: start previous api
+    file: src={{apiversion.stdout_lines[0]}} dest={{pre_api.stdout}}/{{api_file}} state=link
+    tags: api
+    when: pre_api.stdout != "" and now_api.stdout != pre_api.stdout
+    notify:
+      - stop api
+      - api version
+      - start api
+      - wait for stopping
+      - wait for starting
+  - name: get previous backend deployment folder name
+    shell: ls -1t -d /opt/backend*|head -n 2|tail -1
+    register: pre_backend
+    tags: backend    
+  - name: get previous backend  and start it if possibile
+    tags: backend
+    shell: ls -rt {{ pre_backend.stdout }}/*.jar
+    register: backendversion
+    when: pre_backend.stdout != "" and now_backend.stdout != pre_backend.stdout
+    changed_when: backendversion.stdout_lines[1] is defined
+    notify:
+      - stop backend
+      - backend version
+      - start backend
+      - wait for stopping backend
+      - wait for starting backend
+      - wait for starting backend
+  - name: start previous backend
+    file: src={{backendversion.stdout_lines[0]}} dest={{pre_backend.stdout}}/{{backend_file}} state=link force=yes
+    when: pre_backend.stdout != "" and now_backend.stdout != pre_backend.stdout
+    tags: backend
+    notify:
+      - stop backend
+      - backend version
+      - start backend
+      - wait for stopping backend
+      - wait for starting backend
+      - wait for starting backend
+  - debug: msg='there is no more old deployment to rollback'
+    tags: api
+    when: now_api.stdout == pre_api.stdout 
+  - debug: msg='there is no more old deployment to rollback'
+    tags: backend
+    when: now_backend.stdout == pre_backend.stdout
+  - debug: msg='there is no more old deployment to rollback'
+    tags: web
+    when: now_web.stdout == pre_web.stdout
+  handlers:
+  - name: stop api
+    shell: pkill -f server.port={{item}}
+    with_items: "{{service_port}}"
+    ignore_errors: yes
+  - name: wait for stopping
+    wait_for: port={{item}} state=stopped timeout=100 
+    with_items: "{{service_port}}"
+  - name: stop backend
+    shell: pkill -f server.port={{item}}
+    with_items: "{{service_port_backend}}"
+    ignore_errors: yes
+  - name: wait for stopping backend
+    wait_for: port={{item}} state=stopped timeout=100
+    with_items: "{{service_port_backend}}"
+  - name: api version
+    debug: msg="rolling back api to {{ apiversion.stdout_lines[0] }}"
+  - name: start api
+    shell: nohup java -jar {{pre_api.stdout}}/{{api_file}} --server.port={{item}} {{api_option}}&
+    args: 
+       chdir: "{{pre_api.stdout}}"
+       executable: /bin/bash
+    with_items: "{{service_port}}"
+  - name: backend version
+    debug: msg="rolling back backend to {{ backendversion.stdout_lines[0] }}"
+  - name: start backend
+    shell: nohup java -jar {{pre_backend.stdout}}/{{backend_file}}  --server.port={{item}} {{backend_option}} &
+    args:
+       chdir: "{{ pre_backend.stdout }}"
+       executable: /bin/bash
+    with_items: "{{service_port_backend}}"
+  - name: wait for starting
+    wait_for: port={{item}} state=started delay=10 timeout=100
+    with_items: "{{service_port}}"
+  - name: wait for starting backend
+    wait_for: port={{item}} state=started delay=10 timeout=100
+    with_items: "{{service_port_backend}}"
+  - name: restart nginx service
+    service: name=nginx enabled=yes state=restarted
+  post_tasks:
+  - name: create symbolic link  for api log monitoring
+    tags: api
+    file: src={{ pre_api.stdout }}  state=link dest=/opt/mnapi force=yes
+    when: now_api.stdout != pre_api.stdout
+  - name: create symbolic link  for backend log monitoring
+    tags: backend
+    file: src={{ pre_backend.stdout }}  state=link dest=/opt/mnbackend force=yes
+    when: now_backend.stdout != pre_backend.stdout
+  - name: clear up latest version backend deployment
+    file: path={{now_backend.stdout}} state=absent
+    tags: backend
+    when: now_backend.stdout != pre_backend.stdout
+  - name: clear up latest version api deployment
+    file: path={{now_api.stdout}} state=absent
+    tags: api
+    when: now_api.stdout != pre_api.stdout
+  - name: clear up latest web deployment
+    file: path={{now_web.stdout}} state=absent
+    tags: web
+    when: now_web.stdout != pre_web.stdout
+...

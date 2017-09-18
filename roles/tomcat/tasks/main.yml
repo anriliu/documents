@@ -1,0 +1,21 @@
+---
+- name: add  tomcat user
+  user: name=tomcat state=present
+- stat: path=/home/tomcat/{{ TOMCAT_NAME }}
+  register: tomcat_stat
+- name: download and  install tomcat
+  unarchive: src=http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.69/bin/apache-tomcat-7.0.69.tar.gz dest=/home/tomcat remote_src=yes owner=tomcat group=tomcat
+  when: tomcat_stat.stat.exists == False
+- name: rename tomcat
+  command: mv /home/tomcat/apache-tomcat-7.0.69 /home/tomcat/{{ TOMCAT_NAME }}
+  when: tomcat_stat.stat.exists == False
+- lineinfile: dest={{item.name}} insertafter="#!/bin/sh" line={{item.content}}
+  with_items:
+    - { name: '/home/tomcat/{{TOMCAT_NAME}}/bin/catalina.sh', content: 'JAVA_HOME=/usr/lib/jvm/jre'}
+    - { name: '/etc/rc.d/rc.local', content: '/home/tomcat/{{TOMCAT_NAME}}/bin/startup.sh'}
+#- template: src=tomcat7.service.j2 dest=/etc/systemd/system/tomcat.service 
+#  when: ansible_distribution_major_version == "7"
+#  notify: reload systemd
+#- template: src=tomcat6.service.j2 dest=/etc/systemd/system/tomcat.service
+#  when: ansible_distribution_major_version == "6"
+#  notify: reload systemd

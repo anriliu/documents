@@ -1,0 +1,22 @@
+取得一定时间内的tags values
+SHOW TAG VALUES FROM "uptime" WITH KEY = "pod_name" 是不能指定时间段的，因为只能通过下面的方式迂回的到
+
+Create a short retention policy and then create a continuous query that groups by the tags you want to use in the grafana templating.
+
+CREATE RETENTION POLICY "lookup" ON "prod" DURATION 2d REPLICATION 1
+
+I have some extra info that i can group by and push it into a fake measurement called host_info.
+
+CREATE CONTINUOUS QUERY "lookupquery" ON "prod" BEGIN SELECT mean(value) as value INTO "lookup"."host_info" FROM "cpuload" where time > now() - 1h GROUP BY time(1h), host, team, status, location END;
+
+I dont care what the values are, its just about getting a distinct list of hosts that are up and pushing data in the last few days. I have this in my templates in grafana as something like this:
+
+SHOW TAG VALUES FROM "lookup"."host_info" WITH KEY = "location"
+
+I'm just going to reuse the templates in the users dashboards and a few variations of it for other host info like disk etc...
+
+for my k8s grafan templating:  
+1.create dummy measure
+curl  'http://10.99.86.224:8086/query' -d  "db=k8s&chunked=true&chunk_size=20000&q=CREATE CONTINUOUS QUERY "lookupquery" ON "k8s" BEGIN SELECT mean(value) as value INTO pod_info FROM "uptime" where time > now() - 1h GROUP BY time(30m), pod_name, pod_namespace END;"
+2.create grafana templating variable
+SHOW TAG VALUES FROM "pod_info" WITH KEY = "pod_name" WHERE "pod_namespace" =~ /$namespace$/

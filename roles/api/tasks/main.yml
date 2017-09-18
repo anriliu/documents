@@ -1,0 +1,9 @@
+---
+- name: create tmp and cache directory
+  file: path={{ item }} state=directory mode=0777
+  with_items:
+     - /home/nginx/temp_dir
+     - /home/nginx/cache
+- name: copy nginx configuration file
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf backup=yes
+  notify: restart nginx

@@ -1,0 +1,9 @@
+iscsi client setup:
+ yum install iscsi-initiator-utils -y
+iscsiadm -m discovery -t st -p 192.168.0.227
+iscsiadm -m node
+iscsiadm -m node --targetname "iqn.2010-10.synology-iscsi:newvirtualdisk.1" --portal "192.168.0.227:3260" --login
+
+iscsiadm -m node --targetname "iqn.2010-10.synolog y-iscsi:newvirtualdisk.1" --portal "192.168.0.227:3260" --logout
+iscsiadm -m discovery --portal "192.168.0.227:3260" --op=delete
+

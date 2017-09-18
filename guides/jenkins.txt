@@ -1,0 +1,91 @@
+#to support tls email
+add -Dmail.smtp.starttls.enable=true to jenkins java option
+
+one work flow
+node {
+  def mvnHome = tool 'Maven'
+  def devHost = '192.168.2.3'
+  def prodHost = '192.168.2.3'
+
+  dir('dev') {
+    stage 'Dev build'
+    # 1
+    git url: 'https://github.com/ryan-ju/resteasy-demo-01.git'
+    // Print version
+    def v = version()
+    if (v) {
+      echo "Building version ${v}"
+    }
+
+    # 2
+    sh "${mvnHome}/bin/mvn clean install"
+
+    stage 'Dev deploy'
+    # 3
+    deploy("resteasy-demo-01-server/target/resteasy-demo-01-*.war", devHost, "/dev")
+  }
+
+  dir('dev-test') {
+    stage 'Dev QA'
+    # 4
+    git url: 'https://github.com/ryan-ju/resteasy-demo-01-test.git'
+    # 5
+    sh "${mvnHome}/bin/mvn -Dhost=http://${devHost} -Dport=8080 -Dcontext=/dev/api clean install"
+  }
+
+  dir('dev') {
+      stage 'Upload artifact'
+      // Print version
+      def v = version()
+      if (v) {
+        echo "Uploading version ${v}"
+      }
+
+      # 6
+      sh "${mvnHome}/bin/mvn -Dmaven.test.skip=true -P nexus deploy"
+  }
+
+  # 7
+  if (release.toString().toBoolean()) {
+      dir('dev') {
+         stage 'Release build'
+         sh "git checkout master"
+         sh "git pull origin master"
+
+         def rv = releaseVersion()
+
+         # 8
+         sh "${mvnHome}/bin/mvn -P nexus -Darguments=\"-DskipTests\" release:prepare release:perform"
+
+         if (rv) {
+             // Ask for manual permission to continue
+             # 9
+             input "Ready to update prod?"
+             # 10
+             sh "curl -L -o resteasy-server.war https://oss.sonatype.org/service/local/repositories/releases/content/org/itechet/resteasy-demo-01-server/${rv}/resteasy-demo-01-server-${rv}.war"
+             # 11
+             deploy("resteasy-server.war", prodHost, "/resteasy")
+         } else {
+             error "Failed to get release version from pom.xml"
+         }
+      }
+  }
+}
+
+// Get version from pom.xml
+def version() {
+    def matcher = readFile('pom.xml') =~ '<version>(.+)</version>'
+    matcher ? matcher[0][1] : null
+}
+
+// Get release version from snapshot pom.xml
+def releaseVersion() {
+    def matcher = readFile('pom.xml') =~ '<version>(.+)-SNAPSHOT</version>'
+    matcher ? matcher[0][1] : null
+}
+
+// Deploy file to tomcat
+def deploy(file, host, context) {
+    sh "curl -T ${file} -u \"${tomcat_username}:${tomcat_password}\" http://${host}:8080/manager/text/deploy?path=${context}&update=true"
+}
+

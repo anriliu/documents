@@ -1,0 +1,27 @@
+---
+#- name: copy ftp package
+#  copy: src="ncftp-3.2.4-1.el6.x86_64.rpm" dest="/opt/"
+#  tags: always
+#- name: install ftp client
+#  shell: rpm -ivh --force /opt/ncftp-3.2.4-1.el6.x86_64.rpm
+#  tags: always
+- name: install ftp client packages
+  yum: name={{ item }} state=latest
+  with_items:
+   - epel-release
+   - ncftp
+  tags: always
+- name: copy backup script
+  template: src=backup.sh.j2 dest=/opt/backup.sh backup=yes mode=0755
+  notify: mask script
+  tags: fullbackup
+- name: set backup cron job
+  cron: name="backup dirs" day="01"  minute="0" hour="10" job="/opt/backup.sh > /dev/null"  
+  tags: fullbackup
+- name: copy backup script
+  template: src=increasebackup.sh.j2 dest=/opt/increasebackup.sh backup=yes mode=0755
+  notify: mask script
+  tags: increasebackup
+- name: set backup cron job
+  cron: name="backup dirs" minute="0" hour="08" job="/opt/increasebackup.sh > /dev/null"  
+  tags: increasebackup

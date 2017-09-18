@@ -1,0 +1,88 @@
+non-unique snapshots is not supported in Maven 3
+
+Manually upload artfacts to Nexus v3 
+for http
+curl -v -u admin:admin123 --upload-file pom.xml http://localhost:8081/nexus/repository/maven-releases/org/foo/utils/1.0/utils-1.0.pom
+curl -v -u admin:admin123 --upload-file utils-1.0.jar http://localhost:8081/nexus/repository/maven-releases/org/foo/utils/1.0/utils-1.0.jar
+
+for https:
+curl -v --cacert cert_for_nexus.pem -u admin:admin123 --upload-file pom.xml https://localhost:8443/nexus/repository/maven-releases/org/foo/utils/1.0/utils-1.0.pom
+curl -v --cacert cert_for_nexus.pem -u admin:admin123 --upload-file utils-1.0.jar https://localhost:8443/nexus/repository/maven-releases/org/foo/utils/1.0/utils-1.0.jar
+ 
+The group type repository can be used to group more than  one repositories together then you can access this group repository to access all repositories.
+Normally we group hosted repository and proxy repository together for downloading and uploading direct to repository
+
+
+Configuring the Data Directory  
+$install-dir/bin/nexus.vmoptions
+-Dkaraf.data=/opt/sonatype-work/nexus3
+-Djava.io.tmpdir=/opt/sonatype-work/nexus3/tmp
+-XX:LogFile=/opt/sonatype-work/nexus3/log/jvm.log
+
+
+
+use maven with nexus:
+1.in maven setting.xml:
+<settings>
+  <localRepository>/opt/repo</localRepository>
+<servers>
+<server>
+<id>nexus</id>
+<username>nexususer</username>
+<password>passwd</password>
+</server>
+  <mirrors>
+    <mirror>
+      <id>nexus</id>
+      <mirrorOf>*</mirrorOf>
+      <url>http://192.168.168.21:8081/repository/maven-public/</url>
+    </mirror>
+  </mirrors>
+  <profiles>
+    <profile>
+      <id>nexus</id>
+      <!--Enable snapshots for the built in central repo to direct -->
+      <!--all requests to nexus via the mirror -->
+      <repositories>
+        <repository>
+          <id>central</id>
+          <url>http://central</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+      </repositories>
+     <pluginRepositories>
+        <pluginRepository>
+          <id>central</id>
+          <url>http://central</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <!--make the profile active all the time -->
+    <activeProfile>nexus</activeProfile>
+  </activeProfiles>
+</settings> 
+
+
+2.in maven project pom.xml:
+<project>
+...
+<distributionManagement>
+    <repository>
+      <id>nexus</id>
+      <name>Releases</name>
+      <url>http://192.168.168.21:8081/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus</id>
+      <name>Snapshot</name>
+      <url>http://192.168.168.21:8081/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+...
+
+mvn clean deploy
