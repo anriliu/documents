@@ -1,0 +1,12 @@
+zoo.cfg:
+dataDir=/var/lib/zookeeper
+dataLogDir=/var/log/zookeeper
+server.1=172.18.91.143:2881:3881
+server.2=172.18.91.144:2881:3881
+server.3=172.18.91.145:2881:3881
+
+echo 1 >/var/lib/zookeeper/myid
+
+set ZOO_LOG_DIR="/var/log/zookeeper/"  in zkEnv.sh  to store the zookeeper.out file
+
+su nobody -s /bin/bash -c "/opt/zookeeper/bin/zkServer.sh start"
