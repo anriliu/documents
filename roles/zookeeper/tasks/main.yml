@@ -1,21 +1,29 @@
 ---
-- name: download redis src file
+- name: download zookeeper binary file
   unarchive:
-    src: http://download.redis.io/redis-stable.tar.gz
+    src: http://ftp.wayne.edu/apache/zookeeper/stable/zookeeper-3.4.10.tar.gz
     dest: /opt/
     remote_src: True
-- name: compile and install latest redis
-  shell: "{{ item }}"
-  args: 
-    chdir: /opt/redis-stable
+- name: create link for root folder
+  file: state=link src=/opt/zookeeper-3.4.10 dest=/opt/zookeeper
+- name: set zookeeper nohub log file path
+  lineinfile: 
+     path: /opt/zookeeper/bin/zkEnv.sh 
+     insertafter: '^ZOOKEEPER_PREFIX'
+     line: ZOO_LOG_DIR="/var/log/zookeeper/"
+- name: copy init script
+  copy: 
+    src: zookeeper
+    dest: /etc/init.d/zookeeper
+    mode: 0755
+- name: create data and log file
+  file: state=directory path={{ item }} owner=nobody group=nobody
   with_items:
-    - make  
-    - make install
-- name: install redis init script
-  shell: >
-         sudo REDIS_PORT=6379 REDIS_CONFIG_FILE=/etc/redis/redis.conf REDIS_LOG_FILE=/var/log/redis.log  
-         REDIS_DATA_DIR=/var/lib/redis/ REDIS_EXECUTABLE=`command -v redis-server` ./utils/install_server.sh&&chkconfig --del redis_6379&&mv /etc/init.d/redis_6379 //etc/init.d/redis&&
-         chkconfig --level 345 redis on
-  args:
-    chdir: /opt/redis-stable
-  notify: start redis
+    - /var/lib/zookeeper
+    - /var/log/zookeeper
+- name: generate zoo.cfg
+  template: src={{item.name}} dest={{item.path}} owner=nobody group=nobody
+  with_items:
+     - { name: zoo.cfg.j2,path: /opt/zookeeper/conf/zoo.cfg}
+     - { name: myid.j2,path: /var/lib/zookeeper/myid}
+  notify: start zookeeper

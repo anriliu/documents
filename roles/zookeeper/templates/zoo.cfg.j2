@@ -27,6 +27,6 @@ clientPort=2181
 # Purge task interval in hours
 # Set to "0" to disable auto purge feature
 #autopurge.purgeInterval=1
-server.1=172.18.91.143:2881:3881
-server.2=172.18.91.144:2881:3881
-server.3=172.18.91.145:2881:3881
+{% for user in ZKPS %}
+server.{{ user.ID}}={{user.IP}}:2881:3881
+{% endfor %}

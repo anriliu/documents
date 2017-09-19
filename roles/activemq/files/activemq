@@ -1,22 +1,22 @@
 #!/bin/sh
 
-EXEC=/opt/zookeeper/bin/zkServer.sh
-PIDFILE=/var/lib/zookeeper/zookeeper_server.pid
+EXEC=/opt/apache-activemq/bin/activemq
+PIDFILE=/opt/apache-activemq/data/activemq.pid
 USER=nobody
 ###############
 # SysV Init Information
 # chkconfig: - 58 74
-# description: zookeeper is the zookeeper daemon.
+# description: activemq is the daemon.
 ### BEGIN INIT INFO
-# Provides: zookeeper
+# Provides: activemq
 # Required-Start: $network $local_fs $remote_fs
 # Required-Stop: $network $local_fs $remote_fs
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
 # Should-Start: $syslog $named
 # Should-Stop: $syslog $named
-# Short-Description: start and stop zookeeper
-# Description: zookeeper daemon
+# Short-Description: start and stop activemq
+# Description: activemq daemon
 ### END INIT INFO
 
 
@@ -32,13 +32,15 @@ case "$1" in
     start)
         if [ -f $PIDFILE ]
         then
-            echo "$PIDFILE exists, process is already running or crashed we will restarting it"
-            su -s /bin/bash $USER -c   "$EXEC restart"
+            echo "$PIDFILE exists, process is already running or crashed we will restart instead"
+            su -s /bin/bash $USER -c   "$EXEC stop"
+            su -s /bin/bash $USER -c   "$EXEC start"
         else
-            echo "Starting zookeeper server..."
+            echo "Starting activemq server..."
         su -s /bin/bash $USER -c   "$EXEC start"
         fi
         ;;
+
     stop)
         if [ ! -f $PIDFILE ]
         then
@@ -49,20 +51,19 @@ case "$1" in
             su -s /bin/bash $USER -c   "$EXEC stop"
             while [ -x /proc/${PID} ]
             do
-                echo "Waiting for Zookeeper to shutdown ..."
+                echo "Waiting for activemq to shutdown ..."
                 sleep 1
             done
-            echo "Zookeeper stopped"
+            echo "activemq stopped"
         fi
         ;;
     status)
         PID=$(cat $PIDFILE)
         if [ ! -x /proc/${PID} ]
         then
-           echo 'Zookeeper is not running'
+           echo 'activemq is not running'
         else
             su -s /bin/bash $USER -c   "$EXEC status"
-            echo "Zookeeper is running ($PID)"
         fi
         ;;
     restart)
