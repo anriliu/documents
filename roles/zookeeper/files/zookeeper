@@ -5,7 +5,7 @@ PIDFILE=/var/lib/zookeeper/zookeeper_server.pid
 USER=nobody
 ###############
 # SysV Init Information
-# chkconfig: - 58 74
+# chkconfig: - 60 91
 # description: zookeeper is the zookeeper daemon.
 ### BEGIN INIT INFO
 # Provides: zookeeper

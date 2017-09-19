@@ -4,9 +4,9 @@
 EXEC=/usr/bin/redis-server
 CLIEXEC=/usr/bin/redis-cli
 PIDFILE=/tmp/redis_6379.pid
-CONF="/etc/redis/6379.conf"
+CONF="/etc/redis/redis.conf"
 REDISPORT="6379"
-USER=redis
+USER=nobody
 ###############
 # SysV Init Information
 # chkconfig: - 58 74
@@ -39,7 +39,7 @@ case "$1" in
             echo "$PIDFILE exists, process is already running or crashed"
         else
             echo "Starting Redis server..."
-        su $USER -c   "$EXEC $CONF"
+        su -s /bin/sh $USER -c   "$EXEC $CONF"
         fi
         ;;
     stop)

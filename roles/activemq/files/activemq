@@ -5,7 +5,7 @@ PIDFILE=/opt/apache-activemq/data/activemq.pid
 USER=nobody
 ###############
 # SysV Init Information
-# chkconfig: - 58 74
+# chkconfig: - 61 90
 # description: activemq is the daemon.
 ### BEGIN INIT INFO
 # Provides: activemq

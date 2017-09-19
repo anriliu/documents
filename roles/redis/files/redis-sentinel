@@ -6,10 +6,10 @@ CLIEXEC=/usr/bin/redis-cli
 PIDFILE=/tmp/redis.pid
 CONF="/etc/redis/sentinel.conf"
 REDISPORT="26379"
-USER=redis
+USER=nobody
 ###############
 # SysV Init Information
-# chkconfig: - 58 74
+# chkconfig: - 60 70
 # description: redis-sentinel is the redis daemon.
 ### BEGIN INIT INFO
 # Provides: redis-sentinel
@@ -39,7 +39,7 @@ case "$1" in
             echo "$PIDFILE exists, process is already running or crashed"
         else
             echo "Starting Redis sentinel server..."
-            su $USER -c   "$EXEC $CONF"
+            su -s /bin/sh $USER -c   "$EXEC $CONF"
         fi
         ;;
     stop)
