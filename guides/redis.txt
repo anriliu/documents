@@ -1,0 +1,80 @@
+Sentinel+Replication
+
+Redis Sentinel是用来实现Redis高可用的一套解决方案。Redis Sentinel由两个部分组成：由一个或者多个Sentinel实例组成Sentinel系统；由一个主Redis服务器(Master Redis)和多个从Redis服务器(Slave Redis)组成主从备份的Redis系统
+Sentinel系统本身是一个分布式的系统，它的作用是监视Redis服务器，在Master Redis下线时，自动将某个Slave Redis提升为新的主服务器。Redis系统由Master Redis处理客户端的命令请求，Slave Redis作为主服务器的备份而存在。
+
+Redis Sentinel主要作用
+
+监控(Monitoring)：Sentinel 会不断地检查你的主服务器和从服务器是否运作正常。
+提醒(Notification)：当被监控的某个Redis服务器出现问题时， Sentinel可以通过API向管理员或者其他应用程序发送通知。
+自动故障迁移(Automatic failover)：当一个主服务器不能正常工作时， Sentinel会开始一次自动故障迁移操作，它会将失效主服务器的其中一个从服务器升级为新的主服务器，并让失效主服务器的其他从服务器改为复制新的主服务器；当客户端试图连接失效的主服务器时，集群也会向客户端返回新主服务器的地址，使得集群可以使用新主服务器代替失效服务器。
+
+
+Sentinel的原理:
+启动N个Sentinel实例，这些Sentinel实例会去监控你指定的Redis Master/Slaves。
+当Redis Master节点挂掉后，Sentinel实例通过ping检测失败发现这种情况就认为该节点进入 SDOWN状态，也就是检测的Sentinel实例主观地(Subjectively)认为该Redis Master节点挂掉。
+当一定数目(Quorum参数设定的Sentinel实例都认为该Master挂掉的情况下，该节点将转换进入ODOWN状态，也就是客观地(Objectively)挂掉的状态。
+接下来Sentinel实例之间发起选举，选择其中一个Sentinel实例发起failover过程：从Slave中选择一台作为新的Master，让其它Slave从新的Master复制数据，并通过Pub/Sub发布事件。
+使用者客户端从任意Sentinel实例获取Redis配置信息，并监听(可选)Sentinel发出的事件： SDOWN, ODOWN以及failover等，并做相应主从切换，Sentinel还扮演了服务发现的角色。
+Sentinel的Leader选举采用的是Raft协议。
+
+sentinel至少设置2n+1个实例
+下面是1台redis master,两台slave以及三个sentinel的例子
+
+如果redis需要验证则需要设置requirepass和masterauth因为他们之间会自动切换主备
+vi /etc/redis/redis.conf
+requirepass "000000"
+masterauth "000000"
+
+两台slave上配置
+vim /etc/redis/redis.conf
+slaveof 192.168.2.210 6379
+
+
+sentinel的配置，只需要配置monitoring 当前master的IP
+vim /etc/redis/sentinel.conf
+daemonize yes
+port 26379
+bind 192.168.2.210
+sentinel monitor redis-master 192.168.2.210 6379 2  #2表示至少有sentinel 同意时才能判断master失效
+sentinel down-after-milliseconds redis-master 5000
+sentinel failover-timeout redis-master 180000
+sentinel parallel-syncs redis-master 2
+sentinel auth-pass redis-master 000000  #redis 连接master认证密码
+sentinel notification-script redis-master /etc/redis/notify.sh #指定Sentinel检测到该监控的Redis实例failover时调用的报警脚本
+sentinel client-reconfig-script redis-master /etc/redis/failover.sh #指定Sentinel failover之后重配置客户端时执行的脚本
+logfile /var/log/redis/redis-sentinel.log
+
+
+
+查看redis状态
+redis-cli -p 6379 -h 192.168.2.212  info Replication
+
+
+sentinel的一些操作:
+列出所有被监视的主服务器，以及这些主服务器的当前状态。
+redis-cli -p 26379 -h 192.168.2.212 SENTINEL masters
+
+SENTINEL master <master name>：用于查看监控的某个Redis Master信息，包括配置和状态等。
+SENTINEL sentinels <master name>：查看给定主服务器的Sentinel实例列表及其状态。
+SENTINEL reset <pattern>：重置所有名字和给定模式pattern相匹配的主服务器。pattern 参数是一个Glob风格的模式。重置操作清除主服务器目前的所有状态，包括正在执行中的故障转移，并移除目前已经发现和关联的，主服务器的所有从服务器和Sentinel。
+SENTINEL failover <master name>：当主服务器失效时， 在不询问其他Sentinel意见的情况下， 强制开始一次自动故障迁移(不过发起故障转移的Sentinel会向其他Sentinel发送一个新的配置，其他Sentinel会根据这个配置进行相应的更新)。
+SENTINEL reset <pattern>：强制重设所有监控的Master状态，清除已知的Slave和Sentinel实例信息，重新获取并生成配置文件。
+SENTINEL ckquorum <master name>：检测Sentinel配置是否合理，failover的条件是否可能满足，主要用来检测你的Sentinel配置是否正常。
+SENTINEL flushconfig：强制Sentinel重写所有配置信息到配置文件。
+SENTINEL is-master-down-by-addr <ip> <port>：一个Sentinel可以通过向另一个Sentinel发送SENTINEL is-master-down-by-addr命令来询问对方是否认为给定的服务器已下线。
+
+增加新的Sentinel实例非常简单，修改好配置文件，启动即可，其他Sentinel会自动发现该实例并加入集群。
+移除一个Sentinel实例会相对麻烦一些，因为Sentinel不会忘记已经感知到的Sentinel实例，所以最好按照下列步骤来处理：
+1.停止将要移除的sentinel进程。
+2.给其余的sentinel进程发送SENTINEL RESET *命令来重置状态，忘记将要移除的sentinel，每个进程之间间隔30秒。
+3.确保所有sentinel对于当前存货的sentinel数量达成一致，可以通过SENTINEL MASTER <mastername>命令来观察，或者查看配置文件。
+
+
+Slave可以适当设置优先级，除了0之外(0表示永远不提升为Master)，越小的优先级，越有可能被提示为Master。如果Slave分布在多个机房，可以考虑将和Master同一个机房的Slave的优先级设置的更低以提升他被选为新的Master的可能性。
+
+notes:
+由于Redis是异步复制，所以Sentinel其实无法达到强一致性，它承诺的是最终一致性：最后一次failover的Redis Master赢者通吃，其他Slave的数据将被丢弃，重新从新的Master复制数据。
+其次，Sentinel的选举算法依赖时间，因此要确保所有机器的时间同步，如果发现时间不一致，Sentinel实现了一个TITL模式来保护系统的可用性。
+由于切换主备时会自动修改配置文件内容（主备信息）,因为redis程序运行用户必须要对配置文件(sentinel和redis配置文件)有可读写权限
+
