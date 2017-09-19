@@ -39,7 +39,7 @@ bind 192.168.2.210
 sentinel monitor redis-master 192.168.2.210 6379 2  #2表示至少有sentinel 同意时才能判断master失效
 sentinel down-after-milliseconds redis-master 5000
 sentinel failover-timeout redis-master 180000
-sentinel parallel-syncs redis-master 2
+sentinel parallel-syncs redis-master 2 #切换时同时有几个slave来同步new ，master的数据
 sentinel auth-pass redis-master 000000  #redis 连接master认证密码
 sentinel notification-script redis-master /etc/redis/notify.sh #指定Sentinel检测到该监控的Redis实例failover时调用的报警脚本
 sentinel client-reconfig-script redis-master /etc/redis/failover.sh #指定Sentinel failover之后重配置客户端时执行的脚本
@@ -77,4 +77,7 @@ notes:
 由于Redis是异步复制，所以Sentinel其实无法达到强一致性，它承诺的是最终一致性：最后一次failover的Redis Master赢者通吃，其他Slave的数据将被丢弃，重新从新的Master复制数据。
 其次，Sentinel的选举算法依赖时间，因此要确保所有机器的时间同步，如果发现时间不一致，Sentinel实现了一个TITL模式来保护系统的可用性。
 由于切换主备时会自动修改配置文件内容（主备信息）,因为redis程序运行用户必须要对配置文件(sentinel和redis配置文件)有可读写权限
+parallel-syncs选项指定了在执行故障转移时，最多可以有多少个从服务器同时对新的主服务器进行同步。这个数字越小，完成故障转移所需的时间就越长。
+如果从服务器被设置为允许使用过期数据集(slave-serve-stale-data选项)， 那么你可能不希望所有从服务器都在同一时间向新的主服务器发送同步请求。因为尽管复制过程的绝大部分步骤都不会阻塞从服务器，但从服务器在载入主服务器发来的RDB文件时，仍然会造成从服务器在一段时间内不能处理命令请求。
+如果全部从服务器一起对新的主服务器进行同步，那么就可能会造成所有从服务器在短时间内全部不可用的情况出现。你可以通过将这个值设为1来保证每次只有一个从服务器处于不能处理命令请求的状态。
 

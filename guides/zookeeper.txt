@@ -1,12 +1,72 @@
-zoo.cfg:
+vi zoo.cfg:
+leaderServes=true  #Leader accepts client connections. Default value is "yes".
 dataDir=/var/lib/zookeeper
 dataLogDir=/var/log/zookeeper
-server.1=172.18.91.143:2881:3881
+server.1=172.18.91.143:2881:3881 #server.x is the server id which should be same as myid file,The first port followers use to connect to the leader, and the second is for leader election.
 server.2=172.18.91.144:2881:3881
 server.3=172.18.91.145:2881:3881
+
+other useful configuration options:
+tickTime: 
+the length of a single tick, which is the basic time unit used by ZooKeeper, as measured in milliseconds. It is used to regulate heartbeats, and timeouts. For example, the minimum session timeout will be two ticks.
+initLimit:
+Amount of time, in ticks (see tickTime), to allow followers to connect and sync to a leader. Increased this value as needed, if the amount of data managed by ZooKeeper is large.
+syncLimit:
+Amount of time, in ticks (see tickTime), to allow followers to sync with ZooKeeper. If followers fall too far behind a leader, they will be dropped.
+
 
 echo 1 >/var/lib/zookeeper/myid
 
 set ZOO_LOG_DIR="/var/log/zookeeper/"  in zkEnv.sh  to store the zookeeper.out file
 
 su nobody -s /bin/bash -c "/opt/zookeeper/bin/zkServer.sh start"
+
+
+
+Keeper Commands: The Four Letter Words
+ZooKeeper responds to a small set of commands. Each command is composed of four letters. You issue the commands to ZooKeeper via telnet or nc, at the client port.
+
+Three of the more interesting commands: "stat" gives some general information about the server and connected clients, while "srvr" and "cons" give extended details on server and connections respectively.
+
+conf
+New in 3.3.0: Print details about serving configuration.
+
+cons
+New in 3.3.0: List full connection/session details for all clients connected to this server. Includes information on numbers of packets received/sent, session id, operation latencies, last operation performed, etc...
+
+crst
+New in 3.3.0: Reset connection/session statistics for all connections.
+
+dump
+Lists the outstanding sessions and ephemeral nodes. This only works on the leader.
+
+envi
+Print details about serving environment
+
+ruok
+Tests if server is running in a non-error state. The server will respond with imok if it is running. Otherwise it will not respond at all.
+
+A response of "imok" does not necessarily indicate that the server has joined the quorum, just that the server process is active and bound to the specified client port. Use "stat" for details on state wrt quorum and client connection information.
+
+srst
+Reset server statistics.
+
+srvr
+New in 3.3.0: Lists full details for the server.
+
+stat
+Lists brief details for the server and connected clients.
+
+wchs
+New in 3.3.0: Lists brief information on watches for the server.
+
+wchc
+New in 3.3.0: Lists detailed information on watches for the server, by session. This outputs a list of sessions(connections) with associated watches (paths). Note, depending on the number of watches this operation may be expensive (ie impact server performance), use it carefully.
+
+wchp
+New in 3.3.0: Lists detailed information on watches for the server, by path. This outputs a list of paths (znodes) with associated sessions. Note, depending on the number of watches this operation may be expensive (ie impact server performance), use it carefully.
+
+Here's an example of the ruok command:
+
+$ echo ruok | nc 127.0.0.1 5111
+imok
