@@ -1,7 +1,8 @@
 ---
 - hosts: redis
-  gather_facts: yes
+  gather_facts: no
   vars:
     - ZABBIX_SERVER: 127.0.0.1
+    - redismaster: 192.168.168.41
   roles: 
     - {role: redis}

@@ -3,7 +3,7 @@
 
 EXEC=/usr/bin/redis-server
 CLIEXEC=/usr/bin/redis-cli
-PIDFILE=/tmp/redis_6379.pid
+PIDFILE=/tmp/redis.pid
 CONF="/etc/redis/redis.conf"
 REDISPORT="6379"
 USER=nobody
@@ -12,7 +12,7 @@ USER=nobody
 # chkconfig: - 58 74
 # description: redis_6379 is the redis daemon.
 ### BEGIN INIT INFO
-# Provides: redis_6379
+# Provides: redis-server
 # Required-Start: $network $local_fs $remote_fs
 # Required-Stop: $network $local_fs $remote_fs
 # Default-Start: 2 3 4 5

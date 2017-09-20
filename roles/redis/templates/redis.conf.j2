@@ -6,7 +6,7 @@ timeout 0
 tcp-keepalive 300
 daemonize yes
 supervised no
-pidfile "/tmp/redis_6379.pid"
+pidfile "/tmp/redis.pid"
 loglevel notice
 logfile "/var/log/redis/redis_6379.log"
 databases 16
@@ -50,3 +50,6 @@ client-output-buffer-limit slave 256mb 64mb 60
 client-output-buffer-limit pubsub 32mb 8mb 60
 hz 10
 aof-rewrite-incremental-fsync yes
+{% if slaveof is defined %}
+slaveof {{ slaveof }} 6379
+{% endif %}

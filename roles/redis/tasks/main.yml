@@ -1,4 +1,7 @@
 ---
+- set_fact: 
+   redis_sentinel: redis-sentinel
+  when: "redismaster is defined"
 - name: download redis src file
   unarchive:
     src: http://download.redis.io/redis-stable.tar.gz
@@ -11,13 +14,6 @@
   with_items:
     - make  
     - make PREFIX=/usr/ install
-#- name: install redis init script
-#  shell: >
-#         sudo REDIS_PORT=6379 REDIS_CONFIG_FILE=/etc/redis/redis.conf REDIS_LOG_FILE=/var/log/redis.log  
-#         REDIS_DATA_DIR=/var/lib/redis/ REDIS_EXECUTABLE=`command -v redis-server` ./utils/install_server.sh&&chkconfig --del redis_6379&&mv /etc/init.d/redis_6379 //etc/init.d/redis&&
-#         chkconfig --level 345 redis on
-#  args:
-#    chdir: /opt/redis-stable
 - name: create data and log file
   file: state=directory path={{ item }} owner=nobody group=nobody
   with_items:
@@ -25,14 +21,14 @@
     - /var/log/redis
     - /etc/redis
 - name: copy configure files
-  copy:
+  template:
     src: "{{ item }}"
-    dest: /etc/redis/
+    dest: /etc/redis/{{ item[0:-3] }}
     owner: nobody 
     group: nobody
   with_items:
-     - redis.conf
-     - sentinel.conf
+     - redis.conf.j2
+     - sentinel.conf.j2
 - name: copy init script
   copy: 
     src: "{{ item }}"
