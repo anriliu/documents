@@ -1,5 +1,9 @@
 ---
-- meta: end_play
+- block:
+    - name: "end play "
+      debug:
+        msg: "slaveof is not same as redismaster"
+    - meta: end_play
   when: "( redismaster is defined ) and ( hostvars[groups['redis'][1]]['slaveof'] != redismaster )"
 - set_fact: 
      redis_sentinel: redis-sentinel
