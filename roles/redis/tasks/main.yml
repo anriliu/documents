@@ -1,4 +1,6 @@
 ---
+- meta: end_play
+  when: "( redismaster is defined ) and ( hostvars[groups['redis'][1]]['slaveof'] != redismaster )"
 - set_fact: 
      redis_sentinel: redis-sentinel
   when: "redismaster is defined"
