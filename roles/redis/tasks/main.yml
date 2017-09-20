@@ -1,7 +1,12 @@
 ---
 - set_fact: 
-   redis_sentinel: redis-sentinel
+     redis_sentinel: redis-sentinel
   when: "redismaster is defined"
+- name: install make and gcc
+  yum: name={{item}} state=present
+  with_items:
+     - make
+     - gcc
 - name: download redis src file
   unarchive:
     src: http://download.redis.io/redis-stable.tar.gz
@@ -12,6 +17,7 @@
   args: 
     chdir: /opt/redis-stable
   with_items:
+    - make distclean
     - make  
     - make PREFIX=/usr/ install
 - name: create data and log file
@@ -29,6 +35,7 @@
   with_items:
      - redis.conf.j2
      - sentinel.conf.j2
+  notify: start redis
 - name: copy init script
   copy: 
     src: "{{ item }}"

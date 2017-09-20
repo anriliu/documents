@@ -3,6 +3,7 @@ Resource Management with systemd
 The control groups, abbreviated as cgroups in this guide, are a Linux kernel feature that allows you to allocate resources — such as CPU time, system memory, network bandwidth, or combinations of these resources — among hierarchically ordered groups of processes running on a system. By using cgroups, system administrators gain fine-grained control over allocating, prioritizing, denying, managing, and monitoring system resources. Hardware resources can be smartly divided up among applications and users, increasing overall efficiency.
 ed Hat Enterprise Linux 7 moves the resource management settings from the process level to the application level by binding the system of cgroup hierarchies with the systemd unit tree. Therefore, you can manage system resources with systemctl commands, or by modifying systemd unit files,libcgroup is still available to cover for certain specific cases, where systemd is not yet applicable, most notably for using the net-prio subsystem. 
 
+
 Find the list of currently mounted resource controllers in /proc/cgroups
 
 Systemd Unit Types
