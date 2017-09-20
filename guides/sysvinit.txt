@@ -1,0 +1,179 @@
+https://fedoraproject.org/wiki/EPEL:SysVInitScripts#Initscript_template
+Every EPEL SysV-style initscript must contain a chkconfig header. This header is composed of two parts, a "# chkconfig:" line, and a "# description:" line.
+The second line in the chkconfig header contains a description for the service. All EPEL SysV-style initscripts must have this line.
+
+# chkconfig: <startlevellist> <startpriority> <endpriority>
+# description: <description of service>
+
+# chkconfig: 2345 20 80 
+# description: Saves and restores system entropy pool for \
+#              higher quality random number generation.
+
+
+<startlevellist> is a list of the runlevels for which the service should be started by default. Only services which are really required for a vital system should define runlevels here. If no runlevels are defined, a - should be used in place of the runlevels list.
+<startpriority> is the "priority" weight for starting the service. Services are started in numerical order, starting at 0.
+<endpriority> is the "priority" weight for stopping the service. Services are stopped in numerical order, starting at 0. By default, you should set the <endpriority> equal to 100 - <startpriority>.
+
+
+
+you can optionally add below lsb header
+### BEGIN INIT INFO
+...
+### END INIT INFO
+How LSB Provides actually work in EPEL
+EPEL uses chkconfig for script enablement (chkconfig --add) and script activation/deactivation (chkconfig on/chkconfig off). When these tasks occur, the LSB dependencies are read, and the start and stop priorities of the scripts are then adjusted to satisfy those dependencies.
+What this means:
+LSB header dependencies are honored (albeit in a static mechanism)
+If you use LSB headers, your start and stop priority may end up being different than what is in the # chkconfig: line
+
+Facility Names
+Boot facilities are used to indicate dependencies in initialization scripts. Facility names are assigned to scripts by the Provides: keyword. Facility names that begin with a dollar sign ('$') are reserved system facility names. Facility names are only recognized in the context of the initscript comment block (LSB Header) and are not available in the body of the init script. In particular, the use of the leading '$' character does not imply system facility names are subject to shell variable expansion, since they appear inside comments.
+
+LSB compliant init implementations are supposed to provide the following system facility names:
+
+$local_fs:: all local file systems are mounted
+$network:: basic networking support is available. Example: a server program could listen on a socket.
+$named:: IP name-to-address translation, using the interfaces described in this specification, are available to the level the system normally provides them. Example: if a DNS query daemon normally provides this facility, then that daemon has been started.
+$portmap:: daemons providing SunRPC/ONCRPC portmapping service as defined in RFC 1833: Binding Protocols for ONC RPC Version 2 (if present) are running.
+$remote_fs:: all remote file systems are available. In some configurations, file systems such as /usr may be remote. Many applications that require $local_fs will probably also require $remote_fs.
+$syslog:: system logger is operational.
+$time:: the system time has been set, for example by using a network-based time program such as ntp or rdate, or via the hardware Real Time Clock.
+Other (non-system) facilities may be defined in the # Provides: line in the LSB Header
+
+Initscripts must be on their best behavior
+EPEL SysV-style initscripts must behave sensibly if they are started when the service is already running, or stopped when the service is not running. They must not kill unrelated (but perhaps, similarly-named) user processes as a result of their normal actions. The best way to achieve this is to use the init-script functions provided by /etc/rc.d/init.d/functions:
+daemon function
+Starts a daemon, if it is not already running. Does other useful things like keeping the daemon from dumping core if it terminates unexpectedly.
+daemon  [ --check <name> ]  [ --user <username>] 
+        [+/-nicelevel]  program [arguments]  [&] 
+
+        --check <name>:
+           Check that <name> is running, as opposed to simply the
+           first argument passed to daemon().
+        --user <username>:
+           Run command as user <username>
+
+killproc function
+Sends a signal to the program; by default it sends a SIGTERM, and if the process doesn't die, it sends a SIGKILL a few seconds later. It also tries to remove the pidfile, if it finds one.
+killproc program [signal] 
+
+pidofproc function
+Tries to find the pid of a program; checking likely pidfiles, and using the pidof program. Used mainly from within other functions in this file, but also available to scripts.
+pidofproc program
+
+status function
+Prints status information. Assumes that the program name is the same as the servicename.
+status program
+
+
+#!/bin/sh
+#
+# <daemonname> <summary>
+#
+# chkconfig:   <default runlevel(s)> <start> <stop>
+# description: <description, split multiple lines with \
+#              a backslash>
+
+### BEGIN INIT INFO
+# Provides: 
+# Required-Start: 
+# Required-Stop: 
+# Should-Start: 
+# Should-Stop: 
+# Default-Start: 
+# Default-Stop: 
+# Short-Description: 
+# Description:      
+### END INIT INFO
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+exec="/path/to/<daemonname>"
+prog="<service name>"
+config="<path to major config file>"
+
+[ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+
+lockfile=/var/lock/subsys/$prog
+
+start() {
+    [ -x $exec ] || exit 5
+    [ -f $config ] || exit 6
+    echo -n $"Starting $prog: "
+    # if not running, start it up here, usually something like "daemon $exec"
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && touch $lockfile
+    return $retval
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    # stop it here, often "killproc $prog"
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && rm -f $lockfile
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    restart
+}
+
+force_reload() {
+    restart
+}
+
+rh_status() {
+    # run checks to determine if the service is running or use generic status
+    status $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 0
+        restart
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+        exit 2
+esac
+exit $?
+
+
+
+
+
+
