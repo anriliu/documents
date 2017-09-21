@@ -1,22 +1,37 @@
+limit process bandwidth by tc and cgroup
+
 /usr/share/doc/kernel-doc-xxxx/Documentation/cgroups/net_cls.txt 
 https://www.kernel.org/doc/Documentation/cgroup-v1/net_cls.txt
 Example:
 mkdir /sys/fs/cgroup/net_cls
 mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls
 mkdir /sys/fs/cgroup/net_cls/0
+
+for centos7 system you can ignore previous three steps becase it already mounted:
 echo 0x100001 >  /sys/fs/cgroup/net_cls/0/net_cls.classid
 	- setting a 10:1 handle.
 
 cat /sys/fs/cgroup/net_cls/0/net_cls.classid
 1048577
+pgrep mongod|xargs -I k echo k > /sys/fs/cgroup/net_cls,net_prio/foobar/tasks 
 
 configuring tc:
 tc qdisc add dev eth0 root handle 10: htb
 
-tc class add dev eth0 parent 10: classid 10:1 htb rate 40mbit
+tc class add dev eth0 parent 10: classid 10:1 htb rate 100mbit
  - creating traffic class 10:1
 
 tc filter add dev eth0 parent 10: protocol ip prio 10 handle 1: cgroup
+
+tc -s -d qdisc show dev eth0
+tc -s -d filter show dev eth0
+tc -s -d class show dev eth0
+
+rate and backlog stats on htb are always 0. I think the rate estimators in these distros are not enabled by default because, if you have too much htb classes it could consume much CPU resources.
+Try to do as root once sch_htb module has been loaded
+echo 1 > /sys/module/sch_htb/parameters/htb_rate_est
+After giving the above command, replace your htb tree.
+
 
 configuring iptables, basic example if need:
 iptables -A OUTPUT -m cgroup ! --cgroup 0x100001 -j DROP
