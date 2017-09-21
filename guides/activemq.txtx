@@ -1,0 +1,18 @@
+At least (replicas/2)+1 nodes must be online to avoid service outage.
+The Replicated LevelDB Store uses Apache ZooKeeper to pick a master from a set of broker nodes configured to replicate a LevelDB Store. 
+conf/activemq.xml
+<broker brokerName="broker" ... >
+  ...
+  <persistenceAdapter>
+    <replicatedLevelDB
+      directory="activemq-data"
+      replicas="3"
+      bind="tcp://0.0.0.0:0"
+      zkAddress="zoo1.example.org:2181,zoo2.example.org:2181,zoo3.example.org:2181"
+      zkPassword="password"
+      zkPath="/activemq/leveldb-stores"
+      hostname="broker1.example.org"
+      />
+  </persistenceAdapter>
+  ...
+</broker>
