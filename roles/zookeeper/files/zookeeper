@@ -52,6 +52,7 @@ case "$1" in
                 echo "Waiting for Zookeeper to shutdown ..."
                 sleep 1
             done
+            rm -rf $PIDFILE
             echo "Zookeeper stopped"
         fi
         ;;

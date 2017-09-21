@@ -33,8 +33,7 @@ case "$1" in
         if [ -f $PIDFILE ]
         then
             echo "$PIDFILE exists, process is already running or crashed we will restart instead"
-            su -s /bin/bash $USER -c   "$EXEC stop"
-            su -s /bin/bash $USER -c   "$EXEC start"
+            su -s /bin/bash $USER -c   "$EXEC restart"
         else
             echo "Starting activemq server..."
         su -s /bin/bash $USER -c   "$EXEC start"
@@ -54,6 +53,7 @@ case "$1" in
                 echo "Waiting for activemq to shutdown ..."
                 sleep 1
             done
+            rm -rf $PIDFILE
             echo "activemq stopped"
         fi
         ;;

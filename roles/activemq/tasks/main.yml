@@ -1,9 +1,25 @@
 ---
 - name: download activemq-5.15 file
   unarchive:
-    src: http://apache.claz.org//activemq/5.15.0/apache-activemq-5.15.0-bin.tar.gz
+    src: http://archive.apache.org/dist/activemq/5.15.0/apache-activemq-5.15.0-bin.tar.gz
     dest: /opt/
     remote_src: True
-- name: link to start side
-  file: src=/opt/apache-activemq-5.15.0/bin/linux-x86-64/activemq  dest=/etc/init.d/activemq state=link force=yes
+    owner: nobody
+    group: nobody
+- name: create link for root folder
+  file: state=link src=/opt/apache-activemq-5.15.0 dest=/opt/apache-activemq
+- name: copy init script
+  copy:
+    src: activemq
+    dest: /etc/init.d/activemq
+    mode: 0755
+- name: create data and log file
+  file: state=directory path={{ item }} owner=nobody group=nobody
+  with_items:
+    - /opt/apache-activemq/data/activemq-data
+    - /opt/apache-activemq/data
+- name: generate activemq.xml
+  template: src={{item.name}} dest={{item.path}} owner=nobody group=nobody
+  with_items:
+     - { name: activemq.xml.j2,path: /opt/apache-activemq/conf/activemq.xml}
   notify: start activemq

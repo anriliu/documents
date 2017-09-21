@@ -55,6 +55,7 @@ case "$1" in
                 echo "Waiting for Redis sentinel to shutdown ..."
                 sleep 1
             done
+            rm -rf $PIDFILE
             echo "Redis sentinel stopped"
         fi
         ;;

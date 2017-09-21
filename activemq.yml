@@ -1,5 +1,8 @@
 ---
 - hosts: activemq
   gather_facts: no
+  vars: 
+   - cluster: true
+   - zkaddress: 192.168.168.44:2181,192.168.168.42:2181,192.168.168.43:2181  
   roles: 
     - {role: activemq}

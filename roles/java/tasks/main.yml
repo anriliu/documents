@@ -1,10 +1,14 @@
 ---
-- name: download oracle jdk8
-  get_url:
-    url: http://download.oracle.com/otn-pub/java/jdk/8u144-b01/090f390dda5b47b9b721c7dfaa008135/jdk-8u144-linux-x64.rpm
-    dest: /tmp/jdk-8u144-linux-x64.rpm
-    headers: "Cookie: oraclelicense=accept-securebackup-cookie"
-- name: install jdk8
-  yum: name=/tmp/jdk-8u144-linux-x64.rpm
-- name: export JAVA_HOME env
-  shell: echo "export JAVA_HOME=/usr/java/jdk1.8.0_144/" >>/etc/profile
+- stat: path=/usr/bin/java
+  register: java_bin
+- block: 
+  - name: download oracle jdk8
+    get_url:
+      url: http://download.oracle.com/otn-pub/java/jdk/8u144-b01/090f390dda5b47b9b721c7dfaa008135/jdk-8u144-linux-x64.rpm
+      dest: /tmp/jdk-8u144-linux-x64.rpm
+      headers: "Cookie: oraclelicense=accept-securebackup-cookie"
+  - name: install jdk8
+    yum: name=/tmp/jdk-8u144-linux-x64.rpm
+  - name: export JAVA_HOME env
+    shell: echo "export JAVA_HOME=/usr/java/jdk1.8.0_144/" >>/etc/profile
+  when: "java_bin.stat.exists == False"
