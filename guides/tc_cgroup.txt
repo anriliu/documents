@@ -35,3 +35,25 @@ After giving the above command, replace your htb tree.
 
 configuring iptables, basic example if need:
 iptables -A OUTPUT -m cgroup ! --cgroup 0x100001 -j DROP
+
+
+
+
+
+The following tips may help in choosing which queue to use:
+
+To purely slow down outgoing traffic, use the Token Bucket Filter. Works up to huge bandwidths, if you scale the bucket.
+
+If your link is truly full and you want to make sure that no single session can dominate your outgoing bandwidth, use Stochastical Fairness Queueing.
+
+If you have a big backbone and know what you are doing, consider Random Early Drop (see Advanced chapter).
+
+To 'shape' incoming traffic which you are not forwarding, use the Ingress Policer. Incoming shaping is called 'policing', by the way, not 'shaping'.
+
+If you *are* forwarding it, use a TBF on the interface you are forwarding the data to. Unless you want to shape traffic that may go out over several interfaces, in which case the only common factor is the incoming interface. In that case use the Ingress Policer.
+
+If you don't want to shape, but only want to see if your interface is so loaded that it has to queue, use the pfifo queue (not pfifo_fast). It lacks internal bands but does account the size of its backlog.
+
+Finally - you can also do "social shaping". You may not always be able to use technology to achieve what you want. Users experience technical constraints as hostile. A kind word may also help with getting your bandwidth to be divided right!
+
+
