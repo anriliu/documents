@@ -17,13 +17,14 @@ https://www.kernel.org/doc/Documentation/cgroup-v1/net_cls.txt
 Example:
 mkdir /sys/fs/cgroup/net_cls
 mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls
-mkdir /sys/fs/cgroup/net_cls/0
 
 for centos7 system you can ignore previous three steps becase it already mounted:
-echo 0x100003 >  /sys/fs/cgroup/net_cls/0/net_cls.classid
+mkdir /sys/fs/cgroup/net_cls/foobar
+#create our own cgroup ,can also be done by cgcreate -g net_cls:/foobar if you need remove this cgroup just run  cgdelete net_cls:/foobar
+echo 0x100003 >  /sys/fs/cgroup/net_cls/foobar/net_cls.classid
 	- setting a 10:3 classid.1，classid用64bit的16进制表示,The upper 32bits are reserved for the major handle, the remaining hold the minor.
 
-cat /sys/fs/cgroup/net_cls/0/net_cls.classid
+cat /sys/fs/cgroup/net_cls/foobar/net_cls.classid
 1048577
 pgrep mongod|xargs -I k echo k > /sys/fs/cgroup/net_cls,net_prio/foobar/tasks 
 
@@ -42,6 +43,7 @@ tc filter add dev eth0 parent 10: protocol ip prio 1 handle 1: cgroup
 tc -s -d qdisc show dev eth0
 tc -s -d filter show dev eth0
 tc -s -d class show dev eth0
+
 
 rate and backlog stats on htb are always 0. I think the rate estimators in these distros are not enabled by default because, if you have too much htb classes it could consume much CPU resources.
 Try to do as root once sch_htb module has been loaded
