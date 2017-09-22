@@ -1,6 +1,9 @@
+MasterSlave:
+1.Replicated LevelDB Store:
 At least (replicas/2)+1 nodes must be online to avoid service outage.
+
 The Replicated LevelDB Store uses Apache ZooKeeper to pick a master from a set of broker nodes configured to replicate a LevelDB Store. 
-conf/activemq.xml
+vi conf/activemq.xml
 <broker brokerName="broker" ... >
   ...
   <persistenceAdapter>
@@ -16,3 +19,117 @@ conf/activemq.xml
   </persistenceAdapter>
   ...
 </broker>
+
+2.Shared File System Master Slave
+Request SAN or shared file system and Ensure your shared file locks work
+Basically you can run as many brokers as you wish from the same shared file system directory. The first broker to grab the exclusive lock on the file is the master broker.
+vi conf/activemq.xml
+<persistenceAdapter>
+  <kahaDB directory="/sharedFileSystem/sharedBrokerData"/>
+</persistenceAdapter>
+or:
+<persistenceAdapter>
+  <levelDB directory="/sharedFileSystem/sharedBrokerData"/>
+</persistenceAdapter>
+or:
+<persistenceAdapter>
+  <amqPersistenceAdapter directory="/sharedFileSystem/sharedBrokerData"/>
+</persistenceAdapter>
+On startup one master grabs an exclusive lock on the broker file directory - all other brokers are slaves and pause waiting for the exclusive lock.
+
+Scheduler Support
+ActiveMQ maintains information about schedules independent to the settings in the persistence adapter.
+<broker xmlns="http://activemq.apache.org/schema/core"
+dataDirectory="/some/location"
+brokerName="mmuserb2" useJmx="true" advisorySupport="false"
+persistent="true" deleteAllMessagesOnStartup="false"
+useShutdownHook="false" schedulerSupport="true">
+
+3.JDBC Master Slave
+request a database
+When using just JDBC as the data source you can use a Master Slave approach, running as many brokers as you wish as this diagram shows. On startup one master grabs an exclusive lock in the broker database - all other brokers are slaves and pause waiting for the exclusive lock.
+
+<beans>
+ 
+  <!-- Allows us to use system properties as variables in this configuration file -->
+  <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
+   
+  <broker xmlns="http://activemq.apache.org/schema/core">
+ 
+    <destinationPolicy>
+      <policyMap><policyEntries>
+         
+          <policyEntry topic="FOO.>">
+            <dispatchPolicy>
+              <strictOrderDispatchPolicy />
+            </dispatchPolicy>
+            <subscriptionRecoveryPolicy>
+              <lastImageSubscriptionRecoveryPolicy />
+            </subscriptionRecoveryPolicy>
+          </policyEntry>
+ 
+      </policyEntries></policyMap>
+    </destinationPolicy>
+   
+   
+    <persistenceAdapter>
+        <jdbcPersistenceAdapter dataDirectory="${activemq.base}/activemq-data"/>
+ 
+        <!-- 
+        <jdbcPersistenceAdapter dataDirectory="activemq-data" dataSource="#oracle-ds"/>
+        --> 
+    </persistenceAdapter>
+   
+    <transportConnectors>
+       <transportConnector name="default" uri="tcp://localhost:61616"/>
+    </transportConnectors>
+     
+  </broker>
+   
+  <!--  This xbean configuration file supports all the standard spring xml configuration options -->
+   
+  <!-- Postgres DataSource Sample Setup -->
+  <!-- 
+  <bean id="postgres-ds" class="org.postgresql.ds.PGPoolingDataSource">
+    <property name="serverName" value="localhost"/>
+    <property name="databaseName" value="activemq"/>
+    <property name="portNumber" value="0"/>
+    <property name="user" value="activemq"/>
+    <property name="password" value="activemq"/>
+    <property name="dataSourceName" value="postgres"/>
+    <property name="initialConnections" value="1"/>
+    <property name="maxConnections" value="10"/>
+  </bean>
+  -->
+   
+  <!-- MySql DataSource Sample Setup -->
+  <!-- 
+  <bean id="mysql-ds" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+    <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+    <property name="url" value="jdbc:mysql://localhost/activemq?relaxAutoCommit=true"/>
+    <property name="username" value="activemq"/>
+    <property name="password" value="activemq"/>
+    <property name="poolPreparedStatements" value="true"/>
+  </bean>
+  -->  
+    
+  <!-- Oracle DataSource Sample Setup -->
+  <!--
+  <bean id="oracle-ds" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+    <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver"/>
+    <property name="url" value="jdbc:oracle:thin:@localhost:1521:AMQDB"/>
+    <property name="username" value="scott"/>
+    <property name="password" value="tiger"/>
+    <property name="poolPreparedStatements" value="true"/>
+  </bean>
+  -->
+       
+  <!-- Embedded Derby DataSource Sample Setup -->
+  <!-- 
+  <bean id="derby-ds" class="org.apache.derby.jdbc.EmbeddedDataSource">
+    <property name="databaseName" value="derbydb"/>
+    <property name="createDatabase" value="create"/>
+  </bean>
+  -->  
+ 
+</beans>
