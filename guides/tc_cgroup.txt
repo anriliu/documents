@@ -1,5 +1,17 @@
 limit process bandwidth by tc and cgroup
 
+quantum: when more classes want to borrow bandwidth they are each given some number of bytes before serving other competing class. This number is called quantum. You should see that if several classes are competing for parent's bandwidth then they get it in proportion of their quantums. It is important to know that for precise operation quantums need to be as small as possible and larger than MTU. 
+
+HTB ensures that the amount of service provided to each class is at least the minimum of the amount it requests and the amount assigned to it. When a class requests less than the amount assigned, the remaining (excess) bandwidth is distributed to other classes which request service.
+
+From sharing view you see that the class got all the excess bandwidth. The rule is that classes with higher priority are offered excess bandwidth first. But rules about guaranted rate and ceil are still met.
+
+handle: Each qdisc and class is assigned a handle, which can be used by later configuration statements to refer to that qdisc. in filter this handle means different things to different filters.
+
+Note: In general (not just for HTB but for all qdiscs and classes in tc), handles are written x:y where x is an integer identifying a qdisc and y is an integer identifying a class belonging to that qdisc. The handle for a qdisc must have zero for its y value and the handle for a class must have a non-zero value for its y value. The "1:" above is treated as "1:0".
+
+
+
 /usr/share/doc/kernel-doc-xxxx/Documentation/cgroups/net_cls.txt 
 https://www.kernel.org/doc/Documentation/cgroup-v1/net_cls.txt
 Example:
@@ -8,8 +20,8 @@ mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls
 mkdir /sys/fs/cgroup/net_cls/0
 
 for centos7 system you can ignore previous three steps becase it already mounted:
-echo 0x100001 >  /sys/fs/cgroup/net_cls/0/net_cls.classid
-	- setting a 10:1 handle.
+echo 0x100003 >  /sys/fs/cgroup/net_cls/0/net_cls.classid
+	- setting a 10:3 classid.1，classid用64位16进制表示,The upper 32bits are reserved for the major handle, the remaining hold the minor.
 
 cat /sys/fs/cgroup/net_cls/0/net_cls.classid
 1048577
@@ -18,10 +30,14 @@ pgrep mongod|xargs -I k echo k > /sys/fs/cgroup/net_cls,net_prio/foobar/tasks
 configuring tc:
 tc qdisc add dev eth0 root handle 10: htb
 
-tc class add dev eth0 parent 10: classid 10:1 htb rate 100mbit
- - creating traffic class 10:1
+tc class add dev eth0 parent 10: classid 10:1 htb rate 1000mbit ceil 1000mbit
+# creating traffic class 10:1 for total bandwidth limit
 
-tc filter add dev eth0 parent 10: protocol ip prio 10 handle 1: cgroup
+tc class add dev eth0 parent 10:1 classid 10:3 htb rate 200mbit ceil 300mbit
+#creating class 10:3 for new rate limit and ceil(The ceil argument specifies the maximum bandwidth that a class can use. This limits how much bandwidth that class can borrow. The default ceil is the same as the rate.)
+
+tc filter add dev eth0 parent 10: protocol ip prio 1 handle 10:3 cgroup
+#create filter to match  10:3 cgroup traffic
 
 tc -s -d qdisc show dev eth0
 tc -s -d filter show dev eth0
