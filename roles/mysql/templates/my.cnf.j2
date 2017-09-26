@@ -1,0 +1,57 @@
+{% if mysql_master is defined %}
+[mysqld]
+innodb_flush_log_at_trx_commit=1
+sync_binlog=1
+skip-name-resolve=1
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+symbolic-links=0
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+server_id={{ansible_host.split('.')[-1]}}
+binlog_format=row
+log-bin=/var/log/mysql_bin/{{ansible_host.split('.')[-1]}}_mysql_bin
+relay-log={{ansible_host.split('.')[-1]}}_relay_bin
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+log_slave_updates=ON
+lower_case_table_names=1
+#rpl_semi_sync_master_enabled=1
+#rpl_semi_sync_master_timeout=1000
+innodb_file_per_table=1
+slow_query_log = 1
+{% elif mysql_slave is defined  %}
+[mysqld]
+innodb_flush_log_at_trx_commit=1
+sync_binlog=1
+skip-name-resolve=1
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+symbolic-links=0
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+server_id={{ansible_host.split('.')[-1]}}
+binlog_format=row
+log-bin=/var/log/mysql_bin/{{ansible_host.split('.')[-1]}}_mysql_bin
+relay-log={{ansible_host.split('.')[-1]}}_relay_bin
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+log_slave_updates=ON
+lower_case_table_names=1
+#rpl_semi_sync_slave_enabled=1
+log_slave_updates=ON
+read-only=1
+innodb_file_per_table=1
+slow_query_log = 1
+{% else %}
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+innodb_file_per_table=1
+slow_query_log = 1
+symbolic-links=0
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+skip-name-resolve=1
+{% endif %}
+
