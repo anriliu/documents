@@ -87,7 +87,8 @@
              bind="tcp://0.0.0.0:0"
              zkAddress="{{zkaddress}}" 
              hostname="{{active_hostname}}"
-             zkPath="/activemq/leveldb-stores" />
+             zkPath="/activemq/leveldb-stores"
+             zkSessionTimeout="6s"  />
 {% else %}
              <kahaDB directory="${activemq.data}/kahadb"/>
 {% endif %}

@@ -15,6 +15,7 @@ vi conf/activemq.xml
       zkPassword="password"
       zkPath="/activemq/leveldb-stores"
       hostname="broker1.example.org"
+      zkSessionTimeout="6s"
       />
   </persistenceAdapter>
   ...
