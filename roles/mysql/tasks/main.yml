@@ -1,15 +1,17 @@
 ---
-#- name: install mysql5.7 repository
-#  yum: name=http://repo.mysql.com/yum/mysql-5.7-community/el/{{ansible_distribution_major_version}}/x86_64/mysql57-community-release-el{{ansible_distribution_major_version}}-7.noarch.rpm state=present
-#- name: install mysql5.7 server
-#  yum: name={{item}} state=present
-#  with_items:
-#     - mysql-community-server
-#     - MySQL-python 
+- name: install mysql5.7 repository
+  yum: name=http://repo.mysql.com/yum/mysql-5.7-community/el/{{ansible_distribution_major_version}}/x86_64/mysql57-community-release-el{{ansible_distribution_major_version}}-7.noarch.rpm state=present
+- name: install mysql5.7 server
+  yum: name={{item}} state=present
+  with_items:
+     - mysql-community-server
+     - MySQL-python 
 - name: generate my.cnf
   template: src=my.cnf.j2 dest=/etc/my.cnf backup=yes
 - stat: path=/var/lib/mysql/mysql   
   register: mysql_stat
+- name: create mysql binlog folder
+  file: path=/var/log/mysqlbin/ state=directory owner=mysql group=mysql
 - name: init mysqldb
   command: mysqld --initialize-insecure --user=mysql
   when: mysql_stat.stat.exists == False
@@ -32,3 +34,24 @@
       - "{{MYSQLDBS}}"
       - hosts
   when: "MYSQLDBS is defined"
+- name: add mysql user for replication
+  mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name=dbrepl_user password=repl_userPwd priv="*.*:REPLICATION SLAVE" host="%"
+  when: mysql_master is defined
+- block:
+   - name: Get master status
+     mysql_replication :   mode=getmaster  login_user=root login_password={{MYSQL_rootpwd}}
+     delegate_to : "{{ mysql_repl_master }}"
+     register: repl_stat
+   - name: change master on slave
+     mysql_replication: 
+       mode: changemaster
+       master_host: "{{ mysql_repl_master }}" 
+       master_user: dbrepl_user
+       master_password: repl_userPwd
+       master_log_file: "{{ repl_stat.File }}"
+       master_log_pos: "{{ repl_stat.Position }}"
+       login_user: root 
+       login_password: "{{MYSQL_rootpwd}}"
+   - name: Start slave
+     mysql_replication: mode=startslave login_user=root login_password={{MYSQL_rootpwd}}
+  when: mysql_slave  is defined

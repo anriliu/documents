@@ -10,7 +10,7 @@ log-error=/var/log/mysqld.log
 pid-file=/var/run/mysqld/mysqld.pid
 server_id={{ansible_host.split('.')[-1]}}
 binlog_format=row
-log-bin=/var/log/mysql_bin/{{ansible_host.split('.')[-1]}}_mysql_bin
+log-bin=/var/log/mysqlbin/{{ansible_host.split('.')[-1]}}_mysql_bin
 relay-log={{ansible_host.split('.')[-1]}}_relay_bin
 master_info_repository=TABLE
 relay_log_info_repository=TABLE
@@ -32,7 +32,7 @@ log-error=/var/log/mysqld.log
 pid-file=/var/run/mysqld/mysqld.pid
 server_id={{ansible_host.split('.')[-1]}}
 binlog_format=row
-log-bin=/var/log/mysql_bin/{{ansible_host.split('.')[-1]}}_mysql_bin
+log-bin=/var/log/mysqlbin/{{ansible_host.split('.')[-1]}}_mysql_bin
 relay-log={{ansible_host.split('.')[-1]}}_relay_bin
 master_info_repository=TABLE
 relay_log_info_repository=TABLE
@@ -53,5 +53,6 @@ symbolic-links=0
 log-error=/var/log/mysqld.log
 pid-file=/var/run/mysqld/mysqld.pid
 skip-name-resolve=1
+log-bin=/var/log/mysqlbin/{{ansible_host.split('.')[-1]}}_mysql_bin
 {% endif %}
 

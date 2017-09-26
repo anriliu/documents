@@ -3,19 +3,21 @@
   gather_facts: yes
   vars:
     - ZABBIX_SERVER: 127.0.0.1
-    - MYSQLDBS:
-         - user: am_oauth2
-           db: am_oauth2
-           passwd: xxxx323J1
-           hosts:
-            - 'localhost'
-            - '%'
-         - user: ttlt
-           db: ttlt
-           passwd: xxxx
-           hosts:
-            - 'localhost'
-            - '%'
+#    - MYSQLDBS:
+#         - user: am_oauth2
+#           db: am_oauth2
+#           passwd: xxxx323J1
+#           hosts:
+#            - 'localhost'
+#            - '%'
+#         - user: ttlt
+#           db: ttlt
+#           passwd: xxxx
+#           hosts:
+#            - 'localhost'
+#            - '%'
     - MYSQL_rootpwd: xxxx
+    - mysql_repl_master: 192.168.168.41
+      mysql_repl_slave: 192.168.168.42
   roles: 
     - {role: mysql}

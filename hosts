@@ -63,8 +63,10 @@
 192.168.168.44 ID=1
 192.168.168.41 ID=2
 192.168.168.42 ID=3
-
 [activemq]
 192.168.168.44 active_hostname=192.168.168.44
 192.168.168.41 active_hostname=192.168.168.41
 192.168.168.42 active_hostname=192.168.168.42
+[mysql]
+192.168.168.41 mysql_master=true
+192.168.168.42 mysql_slave=true
