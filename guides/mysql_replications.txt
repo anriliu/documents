@@ -358,13 +358,33 @@ if you want to change servers which are already running as master and slave, usi
 #set each server read only to allow the slave to catch up with the master then stop slave,shutdown server and change my.cnf configurations
 SET @@global.read_only = ON;
 
+三个重要的变量
+global.gtid_executed #已经执行过的transactions
+this is a read only variable
+
+session.gtid_next #下一次要执行的transactions ID
+this one can be use to replace specified transaction by run below command from client:
+SET GTID_NEXT='aaa-bbb-ccc-ddd:N';
+BEGIN;
+COMMIT;
+SET GTID_NEXT='AUTOMATIC';
+
+global.gtid_purged # all transactions that have been purged from the binary log,set this will set global.gtid_executed as same vaule when GLOBAL.GTID_EXECUTED is empty
+this can be used to ignore a block of transactions from master binary log
+
+当使用GTID复制出现错误时候，如果不能使用插入一个空的transaction来解决(event中未包含GTID)，那么就可以通过mysqlbinlog找出下一个transaction，stop slave后通过客户端执行这个transaction并
+SET GTID_NEXT=automatic;
+RESET SLAVE;
+START SLAVE;
+以便重新开始正常的复制
+
+使用mysqldump   --master-data --set-gtid-purged=auto（默认)备份数据时会在dump文件中加上 SET @@SESSION.SQL_LOG_BIN=0; is added to the output if GTIDs are enabled on the server you are backing up (that is, if AUTO evaluates to ON)，如此一来就不会在load这个dump file的数据库中产生binary log了, 还会添加SET @@global.gtid_purged statement 以便在change master后直接从新的transition开始复制.
 
 Semisynchronous Replication Installation and Configuration:
 On the master:
 INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
 On each slave:
 INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
-
 On the master:
 [mysqld]
 rpl_semi_sync_master_enabled=1
