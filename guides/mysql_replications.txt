@@ -1,0 +1,328 @@
+To apply row format mysql binary log exposed by mysqlbin directly by mysql client you have to find out a format description BINLOG statement from the beginning of the proceed binary file(relay log or binlog file)
+and add it before the BINLOG statement which you want to execute as below:
+SET @@SESSION.GTID_NEXT= '16875b79-a26d-11e7-a207-80c16ef0b671:17'/*!*/;
+# at 2545
+#170927 10:55:28 server id 41  end_log_pos 2608 CRC32 0x50e59c1f        Query   thread_id=7     exec_time=0     error_code=0
+SET TIMESTAMP=1506480928/*!*/;
+BEGIN
+/*!*/;
+# at 2608
+#170927 10:55:28 server id 41  end_log_pos 2656 CRC32 0xa73f44b5        Table_map: `test`.`t1` mapped to number 219
+# at 2656
+#170927 10:55:28 server id 41  end_log_pos 2702 CRC32 0x5f0adde8        Write_rows: table id 219 flags: STMT_END_F
+BINLOG '
+wAjLWQ8pAAAAdwAAAHsAAAAAAAQANS43LjE5LWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAEzgNAAgAEgAEBAQEEgAAXwAEGggAAAAICAgCAAAACgoKKioAEjQA
+AZa33bE=
+'/*!*/;
+BINLOG '
+IBPLWRMpAAAAMAAAAGAKAAAAANsAAAAAAAEABHRlc3QAAnQxAAID/gL+FAO1RD+n
+IBPLWR4pAAAALgAAAI4KAAAAANsAAAAAAAEAAgAC//wDAAAABWFsbGVu6N0KXw==
+'/*!*/;
+# at 2702
+#170927 10:55:28 server id 41  end_log_pos 2733 CRC32 0xb8b5447b        Xid = 120
+COMMIT/*!*/;
+
+Group Replication Requirements
+The MySQL Group Replication plugin contains an implementation of a Paxos based group communication engine.
+每个transition都会经过certification过程检测语句的合法和是否冲突,只有当大多数成员检测通过时，才会被执行并写入bin log，否则就rollback
+
+a.Infrastructure
+1.InnoDB Storage Engine
+Data must be stored in the InnoDB transactional storage engine.
+2.Primary Keys
+Every table that is to be replicated by the group must have a defined primary key, or primary key equivalent where the equivalent is a non-null unique key.
+3.IPv4 Network
+The group communication engine used by MySQL Group Replication only supports IPv4.
+4.Network Performance
+Group Replication is designed to be deployed in a cluster environment where server instances are very close to each other, and is impacted by both network latency as well as network bandwidth.
+
+
+b.Server Instance Configuration
+1.Binary Log Active
+Set --log-bin[=log_file_name]. MySQL Group Replication replicates binary log contents, therefore the binary log needs to be turned on for it to operate
+2.Slave Updates Logged
+Set --log-slave-updates. Servers need to log binary logs that are applied through the replication applier. Servers in the group need to log all transactions that they receive and apply from the group. This is required because recovery is conducted by relying on binary logs form participants in the group. Therefore, copies of each transaction need to exist on every server, even for those transactions that were not initiated on the server itself.
+3.Binary Log Row Format. 
+Set --binlog-format=row. Group Replication relies on row-based replication format to propagate changes consistently among the servers in the group. It relies on row-based infrastructure to be able to extract the necessary information to detect conflicts among transactions that execute concurrently in different servers in the group
+4.Global Transaction Identifiers On
+Set --gtid-mode=ON. Group Replication uses global transaction identifiers to track exactly which transactions have been committed on every server instance and thus be able to infer which servers have executed transactions that could conflict with already committed transactions elsewhere. In other words, explicit transaction identifiers are a fundamental part of the framework to be able to determine which transactions may conflict.
+通过GTID复制都是从最先开始的事务日志开始，即使这些操作在复制之前执行。
+5.Replication Information Repositories.  
+Set --master-info-repository=TABLE and --relay-log-info-repository=TABLE. The replication applier needs to have the master information and relay log metadata written to the mysql.slave_master_info and mysql.slave_relay_log_info system tables.This ensures the Group Replication plugin has consistent recoverability and transactional management of the replication metadata.
+6.Transaction Write Set Extraction
+Set --transaction-write-set-extraction=XXHASH64 so that while collecting rows to log them to the binary log, the server collects the write set as well. The write set is based on the primary keys of each row and is a simplified and compact view of a tag that uniquely identifies the row that was changed. This tag is then used for detecting conflicts.
+7.Multi-threaded Appliers. 
+Group Replication members can be configured as multi-threaded appliers, enabling transactions to be applied in parallel. Set --slave-parallel-workers=N (where N is the number of parallel applier threads), --slave-preserve-commit-order=1, and --slave-parallel-type=LOGICAL_CLOCK.set --slave-preserve-commit-order=1 to ensure that the final commit of parallel transactions is in the same order as the original transactions. set --slave-preserve-commit-order=1 to ensure that the final commit of parallel transactions is in the same order as the original transactions. in order to determine which transactions can be executed in parallel, the relay log must contain transaction parent information generated with --slave-parallel-type=LOGICAL_CLOCK.  
+
+
+Group Replication Limitations
+1.Replication Event Checksums.  Due to a design limitation of replication event checksums, Group Replication cannot currently make use of them. Therefore set --binlog-checksum=NONE.
+2.Gap Locks.  The certification process does not take into account gap locks, as information about gap locks is not available outside of InnoDB. 
+3.Table Locks and Named Locks.  The certification process does not take into account table locks (see Section 13.3.5, “LOCK TABLES and UNLOCK TABLES Syntax”) or named locks (see GET_LOCK()).
+4.SERIALIZABLE Isolation Level.  SERIALIZABLE isolation level is not supported in multi-primary groups by default. Setting a transaction isolation level to SERIALIZABLE configures Group Replication to refuse to commit the transaction.
+5.Concurrent DDL versus DML Operations.  Concurrent data definition statements and data manipulation statements executing against the same object but on different servers is not supported when using multi-primary mode.
+6.Foreign Keys with Cascading Constraints.Multi-primary mode groups (members all configured with group_replication_single_primary_mode=OFF) do not support tables with multi-level foreign key dependencies, specifically tables that have defined CASCADING foreign key constraints. Therefore we recommend setting group_replication_enforce_update_everywhere_checks=ON on server instances used in multi-primary mode groups to avoid undetected conflicts.
+7.Very Large Transactions.  Individual transactions that result in GTID contents which are large enough that it cannot be copied between group members over the network within a 5 second window can cause failures in the group communication. 
+8.Creating a Cluster from a Group.  Using the adoptFromGR option with the dba.createCluster() function to create a cluster based on an existing deployment of Group Replication fails with an error that the instance is already part of a replication group.
+当前版本最多支持9个节点
+
+
+Group Replication enables you to create fault-tolerant systems with redundancy by replicating the system state throughout a set of servers. Consequently, even if some of the servers fail, as long it is not all or a majority, the system is still available, and all it could have degraded performance or scalability, it is still available. Server failures are isolated and independent. 
+group replication并不负责在某些节点发生故障时候转移客户端的连接地址，这些可以用A connector, load balancer, router, or some form of middleware 来实现。
+故障检测:当集群中的某个instance在固定时间内未收到另一个instance的消息时，它就会raise 一个suspicion，如果群组中的大多数都一致认为某个instance不可达，那么就会重新配置群组并将这个instance排除在外。
+
+MySQL Group Replication relies on a group membership service，The list of online servers is often referred to as a view. Therefore, every server in the group has a consistent view of which are the members participating actively in the group at a given moment in time.
+
+Servers have to agree not only on transaction commits, but also which is the current view. Therefore, if servers agree that a new server becomes part of the group, then the group itself is reconfigured to integrate that server in it, triggering a view change. The opposite also happens, if a server leaves the group, voluntarily or not, then the group dynamically rearranges its configuration and a view change is triggered.
+
+
+配置n个mysql instances,可以容忍p个instance故障,其中2*p+1=n,如果同时down的instance数量超过了p，那么就需要重新bootstrap group.
+
+Single-Primary Mode和multi-primary mode
+single primary 模式下只有一个instance允许读写，其它的都未只读模式，multi-primary mode下群组中所有的instance都允许读写。
+在single primary mode下,当有primary member leaves group的时候，会选举产生新的primary member,This election is performed by looking at the new view, ordering the server UUIDs in lexicographical order and by picking the first one.一旦新的primary member选举成功就会设置它自己为可读写模式,It is a good practice to wait for the new primary to apply its replication related relay-log before re-routing the client applications to it.
+可以通过SELECT VARIABLE_VALUE FROM performance_schema.global_status WHERE VARIABLE_NAME= 'group_replication_primary_member';找出当前的primary member
+
+配置3个instance的Single-Primary Mode群组：
+首先创建第一台作为seed的mysql instance
+vi /ect.my.cnf
+#Replication Framework
+server_id=1
+gtid_mode=ON
+enforce_gtid_consistency=ON
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+binlog_checksum=NONE
+log_slave_updates=ON
+log_bin=binlog
+binlog_format=ROW
+#Group Replication Settings
+transaction_write_set_extraction=XXHASH64
+loose-group_replication_group_name="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+loose-group_replication_start_on_boot=off  #关闭在程序启动时候自动开启group_replication,这个值可以在完成整个group replication设置后开启
+loose-group_replication_local_address= "192.168.168.41:33061" #设置用于group replication通信的端口和地址
+loose-group_replication_group_seeds= "192.168.168.42:33061,192.168.168.41:33061,192.168.168.43:33061"  #如果本机需要加入群组可以尝试连接的instance地址
+loose-group_replication_bootstrap_group= off #这个值只有在第一次启动seed instance时候可以设置为on，这是会重新创建group
+
+The loose- prefix used for the group_replication variables above instructs the server to continue to start if the Group Replication plugin has not been loaded at the time the server is started.
+
+systemctl start mysqld
+Group Replication uses the asynchronous replication protocol to achieve distributed recovery, synchronizing group members before joining them to the group,所以我们需要添加一个拥有REPLICATION SLAVE权限的用户
+mysql> SET SQL_LOG_BIN=0;
+mysql> CREATE USER rpl_user@'%' IDENTIFIED BY 'rpl_pass';
+mysql> GRANT REPLICATION SLAVE ON *.* TO rpl_user@'%';
+mysql> FLUSH PRIVILEGES;
+mysql> SET SQL_LOG_BIN=1;
+
+The distributed recovery process relies on a replication channel named group_replication_recovery which is used to transfer transactions between group members,所以我们需要change master to 来配置group_replication_recovery channel需要用到的用户信息，以便以后需要从group中其它instance同步数据时使用。
+
+mysql> CHANGE MASTER TO MASTER_USER='rpl_user', MASTER_PASSWORD='rpl_pass'  FOR CHANNEL 'group_replication_recovery';
+
+注意group中的member必须拥有唯一的hostname，通过performance_schema.replication_group_members可以查看。可以通过report_host变量来设置hostname，也可以通过修改主机名字实现。
+
+加载Group Replication plugin
+mysql> INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+
+Bootstrap the group and start group replication
+
+mysql>SET GLOBAL group_replication_bootstrap_group=ON;  #only the first instance start need do this one time
+mysql>START GROUP_REPLICATION;
+mysql>SET GLOBAL group_replication_bootstrap_group=OFF;
+
+查看群组成员状态
+mysql> SELECT * FROM performance_schema.replication_group_members;
+查看super_read_only变量,只有primary instance的值为0，表示允许可写，其它节点都是1
+mysql>select @@super_read_only;
+
+添加第二个member:
+server_id=2
+gtid_mode=ON
+enforce_gtid_consistency=ON
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+binlog_checksum=NONE
+log_slave_updates=ON
+log_bin=binlog
+binlog_format=ROW
+transaction_write_set_extraction=XXHASH64
+loose-group_replication_group_name="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+loose-group_replication_start_on_boot=off
+loose-group_replication_local_address= "192.168.168.42:24901"
+loose-group_replication_group_seeds= "192.168.168.42:24901,192.168.168.41:24901,192.168.168.43:24901"
+loose-group_replication_bootstrap_group= off
+
+systemctl start mysqld
+mysql> SET SQL_LOG_BIN=0;
+mysql> CREATE USER rpl_user@'%' IDENTIFIED BY 'rpl_pass';
+mysql> GRANT REPLICATION SLAVE ON *.* TO rpl_user@'%';
+mysql> FLUSH PRIVILEGES;
+mysql> SET SQL_LOG_BIN=1;
+mysql> CHANGE MASTER TO MASTER_USER='rpl_user', MASTER_PASSWORD='rpl_pass'  FOR CHANNEL 'group_replication_recovery';
+mysql> INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+mysql>START GROUP_REPLICATION;
+
+添加第三个节点：
+server_id=3
+gtid_mode=ON
+enforce_gtid_consistency=ON
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+binlog_checksum=NONE
+log_slave_updates=ON
+log_bin=binlog
+binlog_format=ROW
+transaction_write_set_extraction=XXHASH64
+loose-group_replication_group_name="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+loose-group_replication_start_on_boot=off
+loose-group_replication_local_address= "192.168.168.43:24901"
+loose-group_replication_group_seeds= "192.168.168.42:24901,192.168.168.41:24901,192.168.168.43:24901"
+loose-group_replication_bootstrap_group= off
+
+systemctl start mysqld
+mysql> SET SQL_LOG_BIN=0;
+mysql> CREATE USER rpl_user@'%' IDENTIFIED BY 'rpl_pass';
+mysql> GRANT REPLICATION SLAVE ON *.* TO rpl_user@'%';
+mysql> FLUSH PRIVILEGES;
+mysql> SET SQL_LOG_BIN=1;
+mysql> INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+mysql> CHANGE MASTER TO MASTER_USER='rpl_user', MASTER_PASSWORD='rpl_pass'  FOR CHANNEL 'group_replication_recovery';
+mysql>START GROUP_REPLICATION;
+
+再次查群组中member状态：
+select * from performance_schema.replication_group_members;
+
+
+通过mysqldump备份数据加入新的member:
+加入如上my.cnf配置
+mysqldump -uroot -p --all-databases > ~/mysqldump.sql  #在另外的memeber导出数据
+mysql> INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+mysql>source /data/mysqlmysqldump.sql
+mysql>reset master
+mysql>SET @@GLOBAL.GTID_PURGED='9ac06b4e-13aa-11e7-a62e-5254004347f9:1-18'; #看GTID集合是否一致
+mysql> CHANGE MASTER TO MASTER_USER='rpl_user', MASTER_PASSWORD='rpl_pass'  FOR CHANNEL 'group_replication_recovery';
+mysql>START GROUP_REPLICATION;
+
+
+monitoring:
+performance_schema.replication_group_member_stats
+这个表中存储了information related to the certification process.
+These fields are important for monitoring the performance of the members connected in the group. For example, suppose that one of the group’s members is delayed and is not able to keep up to date with the other members of the group. In this case you might see a large number of transactions in the queue. 
+note:Once an instance enters ERROR state, the super_read_only option is set to ON. To leave the ERROR state you must manually configure the instance with super_read_only=OFF.
+
+
+
+performance_schema.replication_group_members
+This table is used for monitoring the status of the different server instances that are tracked in the current view, or in other words are part of the group and as such are tracked by the membership service.
+
+performance_schema.replication_connection_status
+When connected to a group, some fields in this table show information regarding Group Replication. For instance, the transactions that have been received from the group and queued in the applier queue (the relay log).
+
+
+performance_schema.replication_applier_status
+The state of the Group Replication related channels and threads can be observed using the regular replication_applier_status table as well. If there are many different worker threads applying transactions, then the worker tables can also be used to monitor what each worker thread is doing.
+
+
+The replication channels created by the Group Replication plugin are named:
+group_replication_recovery - This channel is used for the replication changes that are related to the distributed recovery phase.
+group_replication_applier - This channel is used for the incoming changes from the group. This is the channel used to apply transactions coming directly from the group.
+
+
+Multi-Primary Mode:
+When deployed in multi-primary mode, statements are checked to ensure they are compatible with the mode. The following checks are made when Group Replication is deployed in multi-master mode:
+If a transaction is executed under the SERIALIZABLE isolation level, then its commit fails when synchronizing itself with the group.
+If a transaction executes against a table that has foreign keys with cascading constraints, then the transaction fails to commit when synchronizing itself with the group.
+These checks can be deactivated by setting the option group_replication_enforce_update_everywhere_checks to FALSE. When deploying in single-primary mode, this option must be set to FALSE.
+如果要启用multi-primary 模式那么需要在所有的mysql instance上面设置group_replication_single_primary_mode=OFF 参数
+如果要从single-primary mode转换到multi-primary mode那么需要stop grouop_replication 后再重新bootstrap 群组
+stop GROUP_REPLICATION;
+set global group_replication_single_primary_mode=off;
+set global group_replication_enforce_update_everywhere_checks=ON;
+SET GLOBAL group_replication_bootstrap_group=ON;
+START  GROUP_REPLICATION;
+SET GLOBAL group_replication_bootstrap_group=OFF;
+
+
+
+Tuning Recovery:
+初次连接进集群的member是依赖the binary log and existing MySQL replication framework来恢复到最新的数据
+SET GLOBAL group_replication_recovery_retry_count= 10; #连接每个适合的donors最大次数
+SET GLOBAL group_replication_recovery_reconnect_interval= 120; #尝试连接完集群中所有成员后的sleep时间
+
+Network Partitioning:
+如果集群的大多数成员突然异常退出，那么集群就无法正常自我修复,需要人工做以下干预重新配置群组成员信息：
+SELECT * FROM performance_schema.replication_group_members;
+SELECT @@group_replication_local_address;
+SET GLOBAL group_replication_force_members="127.0.0.1:10000,127.0.0.1:10001";
+注意：配置前需要确定另外的群组成员已经永久关闭并且无法再联系到剩余的成员。
+
+如果集群中的成员是一个一个依次正常退出，那边剩余的成员可以重新配置group信息
+
+Group Replication Security：
+The Group Replication plugin has a configuration option to determine from which hosts an incoming Group Communication connection can be accepted. This option is called group_replication_ip_whitelist,如果设置为AUTOMATIC，则会自动添加内网IP网断
+最好是手动设置
+mysql> STOP GROUP_REPLICATION;
+mysql> SET GLOBAL group_replication_ip_whitelist="10.120.40.237/18,10.178.59.44/22,127.0.0.1/8";
+mysql> START GROUP_REPLICATION;
+
+
+Group Replication系统变量：
+show global variables like 'group_replication%';
+
+Data Manipulation Statement
+
+Any server may execute a transaction without any a priori coordination. But, at commit time, it coordinates with the rest of the servers in the group to reach a decision on the fate of that transaction. This coordination serves two purposes: (i) check whether the transaction should commit or not; (ii) and propagate the changes so that other servers can apply the transaction as well.
+If two transactions are bound to conflict more often than not, then it is a good practice to start them on the same server. They then have a chance to synchronize on the local lock manager instead of aborting later in the replication protocol.
+
+Data Definition Statements
+MySQL DDL execution is not atomic or transactional. The server executes and commits without securing group agreement first. As such, you must route DDL and DML for the same object through the same server, while the DDL is executing and has not replicated everywhere yet.
+
+
+The Group Replication distributed recovery procedure:
+The Group Replication distributed recovery procedure can be summarized as the process through which a new server gets missing data from a online server in the group, while listening for events happening in the group.
+Phase 1:
+第一个阶段joiner会选取一个donor，然后通过asynchronous replication接收donor上joiner刚刚加入group时的所有binary logs,同时joiner也会在这个阶段执行这些binary log，在旧的binary log传输的同时，joiner也会缓存在此期间group所执行的新的transaction
+Phase 2:
+第二阶段就是执行缓存的transaction来追赶上最新的group状态In this phase, the joiner proceeds to the execution of the cached transactions and when the number of transactions queued for execution finally reaches zero, then the member is declared online.
+
+第一个阶段失败后joiner都会自动挑选下一个donor继续执行
+
+
+Recovering From a Point-in-time:
+To synchronize the joiner with the donor up to a specific point in time, the joiner and donor make use of the MySQL global transaction identifiers (GTIDs) mechanism.GTID只是告诉joiner缺少了哪些transactions，而不会指出当前需要catch up的时间点，这些都是binary log view maker的工作，它们在binary log stream中标记binary log view的变化，and also contain additional metadata information, provisioning the joiner with missing certification related data.
+
+A view 表示了群组在某一个时间点的状态corresponds to a group of members participating actively in the current configuration, in other words at a specific point in time. They are correct and online in the system.
+
+A view change occurs when a modification to the group configuration happens
+A view identifier uniquely identifies a view. It is generated whenever a view change happens,is built from two parts: (i) one that is randomly generated and (ii) a monotonically increasing integer.The first part is generated when the group is created, and remains unchanged while there is at least one member in the group. The second part is incremented every time a view change happens.
+
+更详细的新加入节点恢复过程:
+在一个joiner加入群组的时候，一个view change会被执行，一个view change log event会被放进所有online members的执行队列以保证属于之前view的执行队列完成后再执此次变更(执行完成后会有a View change event写入 binary log)，同时joiner会选取donor，一旦确定donor后。会在joiner和donor之间建立一个异步复制连接，然后joiner的applier thread就开始复制数据直到遇到与joiner加入group时所trigger的the view change event,然后就会断开连接来执行这段时间内所cache的群组中产生的新transactions,view change log 还有另外一个作用，它传输了joiner加入群组时所有servers的认证信息，如果没有这些信息，joiner就不能认证后续的事务（检测冲突）
+
+Distributed recovery 由于是依赖asynchronous replication 所以一旦joiner上的数据很旧或者没有任何数据，那么就需要消耗很长的时间来恢复It is recommended that a server is provisioned before it is added to a group. That way, one minimizes the time spent on the recovery step.
+
+Tuning:
+Fine Tuning the Group Communication Thread
+The group communication thread (GCT) runs in a loop while the Group Replication plugin is loaded. The GCT receives messages from the group and from the plugin, handles quorum and failure detection related tasks, sends out some keep alive messages and also handles the incoming and outgoing transactions from/to the server/group. The GCT waits for incoming messages in a queue. When there are no messages, the GCT waits. By configuring this wait to be a little longer (doing an active wait) before actually going to sleep can prove to be beneficial in some cases. 
+mysql> SET GLOBAL group_replication_poll_spin_loops= 10000;
+
+Message Compression:
+Compression happens at the group communication engine level, before the data is handed over to the group communication thread,
+The compression algorithm used is LZ4. Compression is enabled by default with threshold of 1000000 bytes. The compression threshold, in bytes, may be set to something larger than default. In that case, only transactions that have a payload larger than the threshold are compressed. Below is an example of how to set a compression threshold.
+STOP GROUP_REPLICATION;
+SET GLOBAL group_replication_compression_threshold= 2097152;
+START GROUP_REPLICATION;
+This sets the compression threshold to 2MB. If a transaction generates a replication message with a payload larger than 2MB, for example a binary log transaction entry larger than 2MB, then it is compressed. To disable compression set threshold to 0.
+
+Flow Control:
+Group Replication ensures that a transaction only commits after a majority of the members in a group have received it and agreed on the relative order between all transactions that were sent concurrently.
+
+
+
+
+Binary Log File Position based replication:
+
+
+
+GTID replication:
+
