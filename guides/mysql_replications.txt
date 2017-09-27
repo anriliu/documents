@@ -321,8 +321,55 @@ Group Replication ensures that a transaction only commits after a majority of th
 
 
 Binary Log File Position based replication:
+[mysqld]
+innodb_flush_log_at_trx_commit=1
+sync_binlog=1
+skip-name-resolve=1
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+symbolic-links=0
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+server_id=41
+binlog_format=row
+log-bin=/var/log/mysqlbin/41_mysql_bin
+relay-log=41_relay_bin
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+log_slave_updates=ON
+lower_case_table_names=1
+#rpl_semi_sync_master_enabled=1
+#rpl_semi_sync_master_timeout=1000
+innodb_file_per_table=1
+slow_query_log = 1
 
 
 
 GTID replication:
+add below content to both master and slave /etc/my.cnf file
+gtid_mode=ON
+enforce-gtid-consistency=true
 
+
+mysql>CHANGE MASTER TO   MASTER_HOST = 'host', MASTER_PORT = 'port',MASTER_USER = 'user',MASTER_PASSWORD = 'password',MASTER_AUTO_POSITION = 1;
+mysql>start slave
+
+if you want to change servers which are already running as master and slave, using MySQL's binary log position-based replication protocol.you will need do below steps"
+#set each server read only to allow the slave to catch up with the master then stop slave,shutdown server and change my.cnf configurations
+SET @@global.read_only = ON;
+
+
+Semisynchronous Replication Installation and Configuration:
+On the master:
+INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
+On each slave:
+INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
+
+On the master:
+[mysqld]
+rpl_semi_sync_master_enabled=1
+rpl_semi_sync_master_timeout=1000 # 1 second
+
+On each slave:
+[mysqld]
+rpl_semi_sync_slave_enabled=1
