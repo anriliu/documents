@@ -23,7 +23,15 @@ IBPLWR4pAAAALgAAAI4KAAAAANsAAAAAAAEAAgAC//wDAAAABWFsbGVu6N0KXw==
 #170927 10:55:28 server id 41  end_log_pos 2733 CRC32 0xb8b5447b        Xid = 120
 COMMIT/*!*/;
 
-Group Replication Requirements
+monitoring commands:
+SHOW SLAVE HOSTS;
+SHOW SLAVE status;
+SHOW master status;
+SELECT MASTER_POS_WAIT(file, position);
+
+For row format binary log you cannot see on the slave what statements were received from the master and executed. However, you can see what data was changed using mysqlbinlog with the options --base64-output=DECODE-ROWS and --verbose. You can also add binlog_rows_query_log_events=1 to  adds a Rows_query event with the statement to mysqlbinlog output when the -vv option is used.
+
+一.Group Replication Requirements
 The MySQL Group Replication plugin contains an implementation of a Paxos based group communication engine.
 每个transition都会经过certification过程检测语句的合法和是否冲突,只有当大多数成员检测通过时，才会被执行并写入bin log，否则就rollback
 
@@ -320,7 +328,8 @@ Group Replication ensures that a transaction only commits after a majority of th
 
 
 
-Binary Log File Position based replication:
+二.Binary Log File Position based replication:
+vi /etc/my.cnf
 [mysqld]
 innodb_flush_log_at_trx_commit=1
 sync_binlog=1
@@ -343,9 +352,24 @@ lower_case_table_names=1
 innodb_file_per_table=1
 slow_query_log = 1
 
+mysql> GRANT REPLICATION SLAVE ON *.* TO 'repl'@'remotehost.mydomain.com' IDENTIFIED BY 'slavepass';
+mysql> FLUSH TABLES WITH READ LOCK;
+mysql>SHOW MASTER STATUS;
+mysqldump --all-databases --master-data > dbdump.db
+on slave:
+mysql< dbdump.db
+mysql> CHANGE MASTER TO \
+    MASTER_HOST='master_host_name' \
+    MASTER_USER='replication_user_name', \
+    MASTER_PASSWORD='replication_password', \
+    MASTER_LOG_FILE='recorded_log_file_name', \
+     MASTER_LOG_POS=recorded_log_position;
+This procedure uses FLUSH TABLES WITH READ LOCK, which blocks COMMIT operations for InnoDB tables
+If the master has been running previously without binary logging enabled, the log file name and position values displayed by SHOW MASTER STATUS or mysqldump --master-data are empty. In that case, the values that you need to use later when specifying the slave's log file and position are the empty string ('') and 4.
+For InnoDB, all tables in all databases are stored in the system tablespace files, unless you have the innodb_file_per_table option enabled.
 
-
-GTID replication:
+三.GTID replication:
+change mater to 语句不能包含文件和指定的position，否则就gtid replication就不会生效
 add below content to both master and slave /etc/my.cnf file
 gtid_mode=ON
 enforce-gtid-consistency=true
@@ -380,7 +404,7 @@ START SLAVE;
 
 使用mysqldump   --master-data --set-gtid-purged=auto（默认)备份数据时会在dump文件中加上 SET @@SESSION.SQL_LOG_BIN=0; is added to the output if GTIDs are enabled on the server you are backing up (that is, if AUTO evaluates to ON)，如此一来就不会在load这个dump file的数据库中产生binary log了, 还会添加SET @@global.gtid_purged statement 以便在change master后直接从新的transition开始复制.
 
-Semisynchronous Replication Installation and Configuration:
+四.Semisynchronous Replication Installation and Configuration:
 On the master:
 INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
 On each slave:
