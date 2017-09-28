@@ -47,7 +47,7 @@ SHOW RELAYLOG EVENTS;
 FLUSH RELAY LOGS;
 RESET SLAVE FOR CHANNEL channel
 
-replicate-wild-do-table=db%.% #添加配置项到slave的my.cnf来指定需要复制数据库的表，%是通配符。
+replicate-wild-do-table=db%.% #添加配置项到slave的my.cnf来指定需要复制数据库的表，%是通配符，反之也有replicate-wild-ignore-table参数
 
 For row format binary log you cannot see on the slave what statements were received from the master and executed. However, you can see what data was changed using mysqlbinlog with the options --base64-output=DECODE-ROWS and --verbose. You can also add binlog_rows_query_log_events=1 to  adds a Rows_query event with the statement to mysqlbinlog output when the -vv option is used.
 
