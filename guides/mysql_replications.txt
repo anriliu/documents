@@ -421,7 +421,7 @@ RESET SLAVE;
 START SLAVE;
 以便重新开始正常的复制,但是这样就不能保证完全的数据一致了，最好是手动去找出不能执行的transition语句的原因并解决之(可以用mysqlbinlog -v查看bin日志找出)
 
-使用mysqldump   --master-data --set-gtid-purged=auto（默认)备份数据时会在dump文件中加上 SET @@SESSION.SQL_LOG_BIN=0; is added to the output if GTIDs are enabled on the server you are backing up (that is, if AUTO evaluates to ON)，如此一来就不会在load这个dump file的数据库中产生binary log了, 还会添加SET @@global.gtid_purged statement 以便在change master后直接从新的transition开始复制.
+使用mysqldump   --master-data --set-gtid-purged=auto（默认)备份数据时会在dump文件中加上 SET @@SESSION.SQL_LOG_BIN=0; is added to the output if GTIDs are enabled on the server you are backing up (that is, if AUTO evaluates to ON)，如此一来就不会在load这个dump file的数据库中产生相关操作的binary log了,这样能保证稍后这个salve需要转换成master后不会出现transaction的冲突，但同时如果需要在这台master上新加入slave，那边也必须先把这份dump数据导入。 还会添加SET @@global.gtid_purged statement 以便在change master后直接从新的transition开始复制.
 
 四.Semisynchronous Replication Installation and Configuration:
 开启半同步的mysql sevrer不能设置多个replication channels
