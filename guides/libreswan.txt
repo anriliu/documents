@@ -1,0 +1,296 @@
+Libreswan is an open source, user space IPsec implementation available in Red Hat Enterprise Linux 7,It uses the Internet key exchange (IKE) protocol. IKE version 1 and 2 are implemented as a user-level daemon. Manual key establishment is also possible through ip xfrm commands, however this is not recommended. Libreswan interfaces with the Linux kernel using netlink to transfer the encryption keys. Packet encryption and decryption happen in the Linux kernel.
+Libreswan uses the network security services (NSS) cryptographic library, which is required for Federal Information Processing Standard (FIPS) security compliance.
+more configuration simples can be found here:
+https://libreswan.org/wiki/Configuration_examples#VPN_server_to_VPN_server_configurations
+
+IPsec VPN Using Libreswan:
+install package:
+yum install libreswan
+
+remove old NSS database:
+rm /etc/ipsec.d/*db
+
+initialize a new NSS database
+ipsec initnss
+
+
+To start the ipsec daemon provided by Libreswan, issue the following command as root:
+systemctl start ipsec
+systemctl enable ipsec
+
+Libreswan requires the firewall to allow the following packets:
+UDP port 500 for the Internet Key Exchange (IKE) protocol
+UDP port 4500 for IKE NAT-Traversal
+Protocol 50 for Encapsulated Security Payload (ESP) IPsec packets
+Protocol 51 for Authenticated Header (AH) IPsec packets (uncommon)
+
+Libreswan does not use the terms “source” or “destination”. Instead, it uses the terms “left” and “right” to refer to end points (the hosts). This allows the same configuration to be used on both end points in most cases, although most administrators use “left” for the local host and “right” for the remote host.
+There are three commonly used methods for authentication of endpoints:
+1.Pre-Shared Keys (PSK) is the simplest authentication method. PSK's should consist of random characters and have a length of at least 20 characters. Due to the dangers of non-random and short PSKs, this method is not available when the system is running in FIPS mode.
+2.Raw RSA keys are commonly used for static host-to-host or subnet-to-subnet IPsec configurations. The hosts are manually configured with each other's public RSA key. This method does not scale well when dozens or more hosts all need to setup IPsec tunnels to each other.
+3.X.509 certificates are commonly used for large scale deployments where there are many hosts that need to connect to a common IPsec gateway. A central certificate authority (CA) is used to sign RSA certificates for hosts or users. This central CA is responsible for relaying trust, including the revocations of individual hosts or users.
+
+Host-To-Host VPN Using Libreswan:
+a.enter the following commands as root on both of the hosts (“left” and “right”) to create new raw RSA key pairs:
+ipsec newhostkey --configdir /etc/ipsec.d --output /etc/ipsec.d/www.example.com.secrets
+
+b.To view the public key
+ipsec showhostkey --list
+ipsec showhostkey --left  --rsaid keyid
+后面的配置文件中会需要用到这个key
+c.创建host-host runnel的配置文件
+host-to-host tunnel,leftrsasigkey= and rightrsasigkey= from above
+vi /etc/ipsec.d/my_host-to-host.conf
+conn mytunnel
+    leftid=@west.example.com
+    left=202.61.110.2
+    leftrsasigkey=0sAQOrlo+hOafUZDlCQmXFrje/oZmW2n417C/4urYHQkCvuIQ==
+    rightid=@east.example.com
+    right=61.139.2.19
+    rightrsasigkey=0sAQO3fwC6nSSGgt64DWiYZzuHbc4D/v8t5YTQ==
+    authby=rsasig
+    # load and initiate automatically
+    auto=start
+
+可以在主机上面使用相同的配置文件，系统会自动检测他们是left或者right,同时对于动态ip的主机可以设置自己的ip为 %defaultroute,然后在对端设置%any 表示接收来自所有ip的连接，但是必须保证leftrsasigkey value是从left主机的得到值,rightrsasigkey是从right主机得到的.
+systemctl restart ipsec
+
+Issue the following command as root to load the IPsec tunnel:
+ipsec auto --add mytunnel
+To open the tunnel, issue the following command as root, on the left or the right side:
+ipsec auto --up mytunnel
+
+
+Site-to-Site VPN Using Libreswan
+site-to-site和host-to-host的不同处就在于需要添加两端的子网
+vi /etc/ipsec.d/my_site-to-site.conf 
+conn mysubnet
+     also=mytunnel
+     leftsubnet=192.0.1.0/24
+     rightsubnet=192.0.2.0/24
+
+conn mysubnet6
+     also=mytunnel
+     connaddrfamily=ipv6
+     leftsubnet=2001:db8:0:1::/64
+     rightsubnet=2001:db8:0:2::/64
+
+conn mytunnel
+    auto=start
+    leftid=@west.example.com
+    left=202.61.110.2
+    leftrsasigkey=0sAQOrlo+hOafUZDlCQmXFrje/oZmW2n417C/4urYHQkCvuIQ==
+    rightid=@east.example.com
+    right=61.139.2.19
+    rightrsasigkey=0sAQO3fwC6nSSGgt64DWiYZzuHbc4D/v8t5YTQ==
+    authby=rsasig
+
+ipsec auto --add mysubnet
+ipsec auto --add mysubnet6
+ipsec auto --add mytunnel
+ipsec auto --up mysubnet
+ipsec auto --up mysubnet6
+ipsec auto --up mytunnel
+
+Site-to-Site Single Tunnel VPN Using Libreswan
+建立ipsec后gateway之间用内部ip加密沟通,这也是我们最常用的site-to-site vpn
+conn mysubnet
+    leftid=@west.example.com
+    leftrsasigkey=0sAQOrlo+hOafUZDlCQmXFrje/oZm [...] W2n417C/4urYHQkCvuIQ==
+    left=202.61.110.23
+    leftsourceip=192.0.1.254
+    leftsubnet=192.0.1.0/24
+    rightid=@east.example.com
+    rightrsasigkey=0sAQO3fwC6nSSGgt64DWiYZzuHbc4 [...] D/v8t5YTQ==
+    right=61.139.21.2
+    rightsourceip=192.0.2.254
+    rightsubnet=192.0.2.0/24
+    auto=start
+    authby=rsasig
+
+
+
+Subnet Extrusion Using Libreswan
+IPsec is often deployed in a hub-and-spoke architecture. Each leaf node has an IP range that is part of a larger range. Leaves communicate with each other through the hub.
+In the example below, we configure the head office with 10.0.0.0/8 and two branches that use a smaller /24 subnet.
+At the head office（hub）:
+conn branch1
+    left=1.2.3.4
+    leftid=@headoffice
+    leftsubnet=0.0.0.0/0
+    leftrsasigkey=0sA[...]
+    #
+    right=5.6.7.8
+    rightid=@branch1
+    rightsubnet=10.0.1.0/24
+    rightrsasigkey=0sAXXXX[...]
+    #
+    auto=start
+    authby=rsasig
+
+conn branch2
+    left=1.2.3.4
+    leftid=@headoffice
+    leftsubnet=0.0.0.0/0
+    leftrsasigkey=0sA[...]
+    #
+    right=10.11.12.13
+    rightid=@branch2
+    rightsubnet=10.0.2.0/24
+    rightrsasigkey=0sAYYYY[...]
+    #
+    auto=start
+    authby=rsasig
+
+
+At the “branch1” office, we use the same connection. Additionally, we use a pass-through connection to exclude our local LAN traffic from being sent through the tunnel:
+conn branch1
+    left=1.2.3.4
+    leftid=@headoffice
+    leftsubnet=0.0.0.0/0
+    leftrsasigkey=0sA[...]
+    #
+    right=10.11.12.13
+    rightid=@branch2
+    rightsubnet=10.0.1.0/24
+    rightrsasigkey=0sAYYYY[...]
+    #
+    auto=start
+    authby=rsasig
+
+conn passthrough
+    left=1.2.3.4
+    right=0.0.0.0
+    leftsubnet=10.0.1.0/24
+    rightsubnet=10.0.1.0/24
+    authby=never
+    type=passthrough
+    auto=route
+
+VPN server for remote clients using IKEv1 XAUTH with PSK:
+常用的方式也是比较不安全的
+Server ipsec.conf for XAUTH/PSK
+# libreswan /etc/ipsec.conf configuration file
+config setup
+  protostack=netkey
+  # exclude networks used on server side by adding %v4:!a.b.c.0/24
+  virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:25.0.0.0/8,%v4:!10.231.247.0/24,%v4:!10.231.246.0/24
+  # PSK clients can have the same ID if they send it based on IP address.
+  uniqueids=no
+
+conn xauth-psk
+    authby=secret
+    pfs=no
+    auto=add
+    rekey=no
+    left=%defaultroute
+    leftsubnet=0.0.0.0/0
+    rightaddresspool=10.231.247.10-10.231.247.254
+    right=%any
+    # make cisco clients happy
+    cisco-unity=yes
+    # address of your internal DNS server
+    modecfgdns1=10.231.247.1
+    leftxauthserver=yes
+    rightxauthclient=yes
+    leftmodecfgserver=yes
+    rightmodecfgclient=yes
+    modecfgpull=yes
+    #configure pam via /etc/pam.d/pluto
+    xauthby=pam
+    # xauthby=alwaysok MUST NOT be used with PSK
+    # Can be played with below
+    #dpddelay=30
+    #dpdtimeout=120
+    #dpdaction=clear
+    # xauthfail=soft
+    ike-frag=yes
+    ikev2=never
+The PSK needs to be stored in /etc/ipsec.secrets 
+# The first IP is the real IP address of the server
+111.222.111.222 %any : PSK "ExampleSecret"
+# If this is the only IP and only PSK based configuration, you can configure without hardcoding the IP:
+: PSK "ExampleSecret"
+如果需要client能访问外网，那么需要添加nat规则，iptables -t nat -A POSTROUTING -s 10.231.246.0/23 -o $INTERNET_INTERFACE -m policy --dir out --pol none -j MASQUERADE
+xauthby=file可以改成file模式
+这里的 xauthby=pam 会用 /etc/pam.d/pluto的配置来认证用户
+
+Client ipsec.conf XAUTH/PSK
+conn xauth-psk
+    authby=secret
+    left=%defaultroute
+    leftxauthclient=yes
+    leftmodecfgclient=yes
+    leftxauthusername=YOURUSERNAME
+    modecfgpull=yes
+    right=REMOTESERVERNAME
+    rightxauthserver=yes
+    rightmodecfgserver=yes
+    rekey=no
+    #dpdaction=hold
+    #dpdtimeout=60 
+    #dpddelay=30
+    auto=add
+    ike_frag=yes
+    # Commonly needed to talk to Cisco server
+    # Might also need _exact_ ike= and esp= lines
+    # remote_peer_type=cisco
+    # aggrmode=yes
+    # one of thesse two
+    # rightid=@[GroupName]
+    # rightid=@GroupName
+You can also store your XAUTH password in /etc/ipsec.secrets if you do not use NetworkManager and if you're not using a one time token:
+# /etc/ipsec.secrets
+REMOTESERVERNAME %any : PSK "YourGroupPSK"
+@YOURUSERNAME: XAUTH "YourPassword"
+u can bring the connection up using the comnmand: ipsec auto --up xauth-psk This will automatically reconfigure your DNS if required, and configure the given IP address on your system.
+
+
+Road Warrior Application Using Libreswan and XAUTH with X.509证书：
+Libreswan offers a method to natively assign IP address and DNS information to roaming VPN clients as the connection is established by using the XAUTH IPsec extension.
+XAUTH requires the VPN client to additionally identify itself with a user name and password. For One time Passwords (OTP), such as Google Authenticator or RSA SecureID tokens, the one-time token is appended to the user password.
+There are three possible back ends for XAUTH:
+xauthby=pam
+This uses the configuration in /etc/pam.d/pluto to authenticate the user.
+xauthby=file
+This uses the configuration file /etc/ipsec.d/passwd 
+文件的格式和apache .htpasswd类似，可以用htpasswd生成，但是在username和password后还需要添加ipsec connection name,下面是一个使用 conn remoteusers的用户信息
+user1:$apr1$MIwQ3DHb$1I69LzTnZhnCT2DPQmAOK.:remoteusers
+xauthby=alwaysok
+The server will always pretend the XAUTH user and password combination was correct.This should only be used when users are already identified by X.509 certificates, or when testing the VPN without needing an XAUTH back end.
+
+An example configuration with X.509 certificates:
+conn xauth-rsa
+    auto=add
+    authby=rsasig
+    pfs=no
+    rekey=no
+    left=ServerIP
+    leftcert=vpn.example.com
+    #leftid=%fromcert
+    leftid=vpn.example.com
+    leftsendcert=always
+    leftsubnet=0.0.0.0/0
+    rightaddresspool=10.234.123.2-10.234.123.254
+    right=%any
+    rightrsasigkey=%cert
+    modecfgdns1=1.2.3.4
+    modecfgdns2=8.8.8.8
+    modecfgdomain=example.com
+    modecfgbanner="Authorized Access is allowed"
+    leftxauthserver=yes
+    rightxauthclient=yes
+    leftmodecfgserver=yes
+    rightmodecfgclient=yes
+    modecfgpull=yes
+    xauthby=pam
+    dpddelay=30
+    dpdtimeout=120
+    dpdaction=clear
+    ike_frag=yes
+    # for walled-garden on xauth failure
+    # xauthfail=soft
+    #leftupdown=/custom/_updown
+
+When xauthfail is set to soft, instead of hard, authentication failures are ignored, and the VPN is setup as if the user authenticated properly. A custom updown script can be used to check for the environment variable XAUTH_FAILED. Such users can then be redirected, for example, using iptables DNAT, to a “walled garden” where they can contact the administrator or renew a paid subscription to the service.
+If leftsubnet is not 0.0.0.0/0, split tunneling configuration requests are sent automatically to the client. For example, when using leftsubnet=10.0.0.0/8, the VPN client would only send traffic for 10.0.0.0/8 through the VPN.
