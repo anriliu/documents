@@ -6,3 +6,6 @@ then add this tap device to the bridge which contains physical NIC
 Before you do below command you must add br0 with physical interface first 
 brctl addif br0 tap_soft
 brctl show
+
+
+记住softether 是2层的vpn，一个virtual hub就相当于一个2层的交换机,如果virtual hub是与本地网卡做了直接做了bridge，那么连接此virtual hub的vpn用户就相当于连接到了本地的switch，可以通过创建把不同的virtual hub加入layer3 switch的方式来做三层路由
