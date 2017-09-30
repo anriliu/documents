@@ -1,0 +1,75 @@
+OpenSSL is a library that provides cryptographic protocols to applications. The openssl command line utility enables using the cryptographic functions from the shell.
+
+
+openssl list-public-key-algorithms
+openssl list-message-digest-algorithms
+openssl list-cipher-algorithms
+openssl  list-standard-commands
+openssl list-message-digest-commands
+openssl list-cipher-commands 
+
+1.Creating and Managing Encryption Key(private key)
+openssl genpkey -algorithm RSA -out privkey.pem
+openssl genpkey -algorithm RSA -out privkey.pem -pkeyopt rsa_keygen_bits:2048  -pkeyopt rsa_keygen_pubexp:3 #more options
+openssl genpkey -algorithm RSA -out privkey.pem -aes-128-cbc -pass pass:hello  #add password on private key
+
+2.Creating a Certificate Signing Request(which can be sent to a CA for signing )
+openssl req -new -key privkey.pem -out cert.csr
+
+3.Creating a Self-signed Certificate(if you don't want to request certificate from CA)
+To generate a self-signed certificate, valid for 366 days, issue a command in the following format:
+openssl req -new -x509 -key privkey.pem -out selfcert.pem -days 366
+⁠
+
+4. Creating a Certificate Using a Makefile(you can also generare Certificate with make)
+The /etc/pki/tls/certs/ directory contains a Makefile which can be used to create certificates using the make command.
+To view the usage instructions, issue a command as follows:
+make -f /etc/pki/tls/certs/Makefile
+
+5. Verifying Certificates
+To verify multiple individual X.509 certificates in PEM format, issue a command in the following format:
+openssl verify cert1.pem cert2.pem
+To verify a certificate chain the leaf certificate must be in cert.pem and the intermediate certificates which you do not trust must be directly concatenated in untrusted.pem
+openssl verify -untrusted untrusted.pem -CAfile cacert.pem cert.pem
+
+6.Encrypting and Decrypting a File
+To encrypt a file called plaintext with key file, issue a command as follows:
+openssl pkeyutl -in plaintext -out cyphertext -inkey privkey.pem
+The default format for keys and certificates is PEM. If required, use the -keyform DER option to specify the DER key format.
+openssl pkeyutl -verifyrecover -in cyphertext -inkey key.pem #use this command to  extract the data
+
+To sign a data file called plaintext, issue a command as follows:
+openssl pkeyutl -sign -in plaintext -out sigtext -inkey privkey.pem
+
+To verify a signed data file and to extract the data, issue a command as follows:
+openssl pkeyutl -verifyrecover -in sig -inkey key.pem
+
+To verify the signature, for example using a DSA key, issue a command as follows:
+openssl pkeyutl -verify -in file -sigfile sig -inkey key.pem
+
+
+encrypt with password:
+To list available symmetric encryption algorithms, execute the enc command with an unsupported option, such as -l:
+openssl enc -l
+openssl enc -aes-128-cbc -in plaintext -out plaintext.aes-128-cbc
+To decrypt the file obtained in the previous example, use the -d option as in the following example:
+openssl enc -aes-128-cbc -d -in plaintext.aes-128-cbc -out plaintext
+
+
+7.Generating Password Hashes
+he passwd command computes the hash of a password. To compute the hash of a password on the command line, issue a command as follows:
+openssl passwd 'mypassword'   #The -crypt algorithm is used by default.
+
+To compute the hash of a password from standard input, using the MD5 based BSD algorithm  1, issue a command as follows:
+openssl passwd -1 password #The -apr1 option specifies the Apache variant of the BSD algorithm.
+
+To compute the hash of a password stored in a file, and using a salt xx, issue a command as follows:
+openssl passwd -salt xx -in password-file  #The -table will generate a table of password hashes with their corresponding clear text password.
+
+8.Generating Random Data
+To generate a file containing random data, using a seed file, issue the following command:
+openssl rand -out rand-file -rand seed-file num #num means num of bytes 
+
+
+
+
