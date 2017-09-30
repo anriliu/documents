@@ -21,6 +21,38 @@ To start using the database, remove the .new substring from the initial database
 aide --check  #Performing Integrity Checks and it should be ran daily
  aide --update #creates the /var/lib/aide/aide.db.new.gz database file. To start using it for integrity checks, remove the .new substring from the file name.
 
+TCP Wrappers:
+TCP wrappers 通常被称为 wrappers
+Wrappers 允许系统管理员控制 wrappers 支持的基于 TCP 的服务或守护进程的访问。Tcpd 控制从 /etc/inetd.conf 中运行的 TCP 守护进程。不过，很多基于 TCP 的应用程序已加入 wrappers 支持（一般使用 libwrap 库），并且能感知 wrapper；不通过 /etc/inetd.conf 进行控制也没有关系。可以在 wrappers 下进行访问控制的通常有 telnet、ssh、sendmail、ftp ，xinetd、pop3 和 stunnel。对于默认不支持tcp wrapper的我们也可以通过xinetd来启动以达到host access control的目的。
+如果要看应用程序是否支持 wrapper，使用 strings 命令和 grep 获取 hosts_access 或 host：
+# strings /usr/sbin/sshd|grep hosts_access
+或者可以使用 ldd 命令：
+ldd </path/application> | grep libwrap
+This command returns a list of all the running programs that use TCP wrappers for host-access control
+lsof /lib64/libwrap.so.0
+wrappers 守护进程称为 tcpd。得到调用的是它，而非 /etc/inetd.conf 文件中的实际守护进程。Tcpd 读取两个文件，hosts.allow 和 hosts.deny，读取时基于这两个文件中的规则。当找到第一条规则匹配后，会拒绝或允许调用客户端的访问。
+匹配规则如下:
+       ·      Access will be granted when a (daemon,client) pair matches an entry in the /etc/hosts.allow file.
+
+       ·      Otherwise, access will be denied when a (daemon,client) pair matches an entry in the /etc/hosts.deny file.
+
+       ·      Otherwise, access will be granted.
+
+hosts.allow和hosts.deny格式:
+daemon_list : client_list : option : option ...
+telnetd,sshd:192.168.4.: allow
+Twist 和 spawn
+使用 twist 选项发送消息给被拒绝的客户端
+sshd,telnetd:192.168.9.14: twist /bin/echo "Your connection has been refused\
+\nAccess denied and the event is logged"
+Spawn 允许生成本地shell 命令
+telnetd,sshd:192.168.9.24 : spawn (/usr/bin/logger 'DEV BOX!!Warning!!\: 
+ %a has connected') :allow
+%a - 客户端 IP 地址
+%h - 客户端主机名
+%c - 客户端用户名
+
+tcpdmatch httpd 192.168.4.12 #测试访问权限
 
 STUNNEL
 The stunnel program is an encryption wrapper between a client and a server. It listens on the port specified in its configuration file, encrypts the communitation with the client, and forwards the data to the original daemon listening on its usual port. This way, you can secure any service that itself does not support any type of encryption, or improve the security of a service that uses a type of encryption that you want to avoid for security reasons, such as SSL versions 2 and 3, affected by the POODLE SSL vulnerability
