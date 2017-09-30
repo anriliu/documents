@@ -12,6 +12,16 @@ http://cirt.net/nikto2
 web application security scanner
 
 
+AIDE:
+Advanced Intrusion Detection Environment (AIDE) is a utility that creates a database of files on the system, and then uses that database to ensure file integrity and detect system intrusions.
+yum install aide
+aide --init  #the aide --init command checks just a set of directories and files defined in the /etc/aide.conf file
+To start using the database, remove the .new substring from the initial database file name:
+ mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+aide --check  #Performing Integrity Checks and it should be ran daily
+ aide --update #creates the /var/lib/aide/aide.db.new.gz database file. To start using it for integrity checks, remove the .new substring from the file name.
+
+
 STUNNEL
 The stunnel program is an encryption wrapper between a client and a server. It listens on the port specified in its configuration file, encrypts the communitation with the client, and forwards the data to the original daemon listening on its usual port. This way, you can secure any service that itself does not support any type of encryption, or improve the security of a service that uses a type of encryption that you want to avoid for security reasons, such as SSL versions 2 and 3, affected by the POODLE SSL vulnerability
 Configuring stunnel as a TLS Wrapper for cpus service
@@ -35,3 +45,4 @@ options = NO_SSLv3
 
 mkdir /var/run/stunnel
 chown nobody:nobody /var/run/stunnel
+
