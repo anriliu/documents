@@ -23,7 +23,8 @@ aide --check  #Performing Integrity Checks and it should be ran daily
 
 TCP Wrappers:
 TCP wrappers 通常被称为 wrappers
-Wrappers 允许系统管理员控制 wrappers 支持的基于 TCP 的服务或守护进程的访问。Tcpd 控制从 /etc/inetd.conf 中运行的 TCP 守护进程。不过，很多基于 TCP 的应用程序已加入 wrappers 支持（一般使用 libwrap 库），并且能感知 wrapper；不通过 /etc/inetd.conf 进行控制也没有关系。可以在 wrappers 下进行访问控制的通常有 telnet、ssh、sendmail、ftp ，xinetd、pop3 和 stunnel。对于默认不支持tcp wrapper的我们也可以通过xinetd来启动以达到host access control的目的。
+Wrappers 允许系统管理员控制 wrappers 支持的基于 TCP 的服务或守护进程的访问。Tcpd 控制从 /etc/xinetd.conf 中运行的 TCP 守护进程。不过，很多基于 TCP 的应用程序已加入 wrappers 支持（一般使用 libwrap 库），并且能感知 wrapper；不通过 /etc/inetd.conf 进行控制也没有关系。可以在 wrappers 下进行访问控制的通常有 telnet、ssh、sendmail、ftp ，xinetd、pop3 和 stunnel。对于默认不支持tcp wrapper的我们也可以通过xinetd来启动以达到host access control的目的,xinetd runs constantly and listens on all ports for the services it manages. When a connection request arrives for one of its managed services, xinetd starts up the appropriate server for that service.
+ yum -y install tcp_wrappers
 如果要看应用程序是否支持 wrapper，使用 strings 命令和 grep 获取 hosts_access 或 host：
 # strings /usr/sbin/sshd|grep hosts_access
 或者可以使用 ldd 命令：
