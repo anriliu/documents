@@ -12,4 +12,26 @@ http://cirt.net/nikto2
 web application security scanner
 
 
+STUNNEL
+The stunnel program is an encryption wrapper between a client and a server. It listens on the port specified in its configuration file, encrypts the communitation with the client, and forwards the data to the original daemon listening on its usual port. This way, you can secure any service that itself does not support any type of encryption, or improve the security of a service that uses a type of encryption that you want to avoid for security reasons, such as SSL versions 2 and 3, affected by the POODLE SSL vulnerability
+Configuring stunnel as a TLS Wrapper for cpus service
+/etc/stunnel/stunnel.conf
+cert = /etc/pki/tls/certs/stunnel.pem
+; Allow only TLS, thus avoiding SSL
+sslVersion = TLSv1
+chroot = /var/run/stunnel
+setuid = nobody
+setgid = nobody
+pid = /stunnel.pid
+socket = l:TCP_NODELAY=1
+socket = r:TCP_NODELAY=1
 
+[cups]
+accept = 632  # the port to listen on
+connect = 631  #the port to connect to; this must be the port that the service you are securing uses
+TIMEOUTclose = 0
+options = NO_SSLv2
+options = NO_SSLv3
+
+mkdir /var/run/stunnel
+chown nobody:nobody /var/run/stunnel
