@@ -30,6 +30,9 @@ ssh -C -f -N -g -D listen_port user@Tunnel_Host
 -D port 
 指定一个本地机器 “动态的’’ 应用程序端口转发. 工作原理是这样的, 本地机器上分配了一个 socket 侦听 port 端口, 一旦这个端口上有了连接, 该连接就经过安全通道转发出去, 根据应用程序的协议可以判断出远程主机将和哪里连接. 目前支持 SOCKS4 协议, 将充当 SOCKS4 服务器. 只有 root 才能转发特权端口. 可以在配置文件中指定动态端口的转发.
 
+ssh via proxy:
+ssh -o 'ProxyCommand=nc --proxy 192.168.100.3:1080 --proxy-type socks5 %h %p' root@10.7.130.21
+ssh -o 'ProxyCommand=nc --proxy 192.168.100.3:8080 --proxy-type http %h %p' root@10.7.130.21
 
 until kctl get servicemonitor > /dev/null 2>&1; do sleep 1; printf "."; done
 
