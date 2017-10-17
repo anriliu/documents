@@ -4,13 +4,13 @@
   vars:
     - ZABBIX_SERVER: 127.0.0.1
     - MONGO_new:
-         user: gradmin
-         db: oauth
-         passwd: gxxxxx
+         user: spider
+         db: convertor
+         passwd: admin
          roles: dbOwner
     - DBLOGIN:
          user: admin
          db: admin
-         passwd: admin
+         passwd: xxx
   roles: 
     - {role: mongodb}

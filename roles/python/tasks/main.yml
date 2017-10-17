@@ -1,9 +1,10 @@
 ---
 - name: download python src file
   unarchive:
-    src: https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
+#    src: https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
+    src: /opt/Python-3.6.2.tgz
     dest: /opt/
-    remote_src: True
+#    remote_src: True
 - name: install python dependences
   yum: name={{item}} state=present
   with_items:
@@ -22,7 +23,7 @@
     - make 
     - make install
 - name: install pymongo
-  pip: name={{ item }} state=latest executable=pip3
+  pip: name={{ item }} state=latest executable=/usr/local/bin/pip3
   with_items:
     - pymongo
     - pymysql
