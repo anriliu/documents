@@ -94,3 +94,6 @@ ssh log:
 SyslogFacility AUTHPRIV
 
 command -v cmd #返回cmd命令的绝对路径
+
+
+在连接vpn时候，如果想要所有流量走vpn那么可以添加两个0.0.0.0/1和128.0.0.0/1路由从vpn出去来包含所有的IP，以便vpn连接存在时不会使用默认的0.0.0.0/0路由
