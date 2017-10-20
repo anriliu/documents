@@ -18,6 +18,9 @@ too try python35 with scl:
 yum install rh-python35
 scl enable rh-python35
 scl enable rh-python35  "python3 --help"
+6.Atomic 提供nmap,nc,nginx,php,mysql
+wget -q -O - http://www.atomicorp.com/installers/atomic | sh
+
 
 ssh tunnels:
 ssh -C -f -N -g -L listen_port:DST_Host:DST_port user@Tunnel_Host 
