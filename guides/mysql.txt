@@ -26,7 +26,7 @@ UPDATE mysql.user SET authentication_string = PASSWORD('MyNewPass')
 WHERE User = 'root' AND Host = 'localhost';
 FLUSH PRIVILEGES;
 
-mysql on hand monitoring tools innotop
+mysql on hand monitoring tools innotop,mytop
 
 
 Find out locked tables
