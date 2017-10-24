@@ -7,6 +7,6 @@
     dest: /opt/node-v7.4.0-linux-x64.tar.gz
 
 - name: extract nodejs file to path
-  shell: tar --strip-components 1 -xzf node-v7.4.0-linux-x64.tar.gz -C /usr/local
+  shell: tar --strip-components 1 -xzf node-v7.4.0-linux-x64.tar.gz -C /usr/
   args: 
     chdir: /opt/
