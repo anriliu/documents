@@ -1,0 +1,5 @@
+---
+- hosts: nodejs
+  gather_facts: no
+  roles: 
+    - {role: nodejs}

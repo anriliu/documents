@@ -1,0 +1,12 @@
+---
+- name: download nodejs binary file
+  copy:
+  #get_url:
+    src: /opt/node-v7.4.0-linux-x64.tar.gz
+    #url: http://nodejs.org/dist/v7.4.0/node-v7.4.0-linux-x64.tar.gz
+    dest: /opt/node-v7.4.0-linux-x64.tar.gz
+
+- name: extract nodejs file to path
+  shell: tar --strip-components 1 -xzf node-v7.4.0-linux-x64.tar.gz -C /usr/local
+  args: 
+    chdir: /opt/
