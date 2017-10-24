@@ -50,23 +50,25 @@
 #172.27.0.211 DIRS="/etc /root /var/log/ /home /etc/haproxy"
 #172.27.0.242 DIRS="/etc /root /var/log/ /home /etc/haproxy"
 [ozoffice]
-192.168.128.154 timezone='Asia/Shanghai'
+#192.168.128.154 timezone='Asia/Shanghai'
 [mongodb]
-19.108.10.89
+#19.108.10.89
 [redis]
 #192.168.168.44 slaveof=192.168.168.41
 #192.168.168.42 slaveof=192.168.168.41
 #192.168.168.41
 [python]
-19.108.10.89
+#19.108.10.89
 [zookeeper]
-192.168.168.44 ID=1
-192.168.168.41 ID=2
-192.168.168.42 ID=3
+#192.168.168.44 ID=1
+#192.168.168.41 ID=2
+#192.168.168.42 ID=3
 [activemq]
 #192.168.168.44 active_hostname=192.168.168.44
 #192.168.168.41 active_hostname=192.168.168.41
 #192.168.168.42 active_hostname=192.168.168.42
 [mysql]
-192.168.168.41 mysql_master=true
-192.168.168.42 mysql_slave=true
+#192.168.168.41 mysql_master=true
+#192.168.168.42 mysql_slave=true
+[nodejs]
+192.168.168.41
