@@ -32,6 +32,9 @@
 - replace: dest=/etc/zabbix/zabbix_agentd.conf regexp='^(Server|ServerActive)=.*$' replace='\1={{ ZABBIX_SERVER }}' 
   notify: restart zabbix
   tags: zabbix
+- replace: dest=/etc/zabbix/zabbix_agentd.conf regexp='^# Timeout=3' replace='Timeout=10'
+  notify: restart zabbix
+  tags: zabbix
 - name: disable firewall7
   service: name=firewalld state=stopped enabled=no
   when: ansible_distribution_major_version == "7"
