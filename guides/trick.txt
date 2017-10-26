@@ -39,6 +39,8 @@ ssh -o "ProxyCommand ssh lmx@proxy.machine nc -w 1 %h %p" -p 1098 lmx@target.mac
 ssh via proxy:
 ssh -o 'ProxyCommand=nc --proxy 192.168.100.3:1080 --proxy-type socks5 %h %p' root@10.7.130.21
 ssh -o 'ProxyCommand=nc --proxy 192.168.100.3:8080 --proxy-type http %h %p' root@10.7.130.21
+注意安装nmap-ncat-6.47才能支持socks5
+
 
 until kctl get servicemonitor > /dev/null 2>&1; do sleep 1; printf "."; done
 
