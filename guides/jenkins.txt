@@ -89,3 +89,20 @@ def deploy(file, host, context) {
     sh "curl -T ${file} -u \"${tomcat_username}:${tomcat_password}\" http://${host}:8080/manager/text/deploy?path=${context}&update=true"
 }
 
+
+
+##to run particularly stage you have to define the stages like below and pass theStage parameter
+stage "s1"
+if (theStage in ["s1"]) {
+    sleep 2
+}
+
+stage "s2"
+if (theStage in ["s1", "s2"]) {
+    sleep 2
+}
+
+stage "s3"
+if (theStage in ["s1", "s2", "s3"]) {
+    sleep 2
+}
