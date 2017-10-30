@@ -119,3 +119,6 @@ bash会在以下情况下打开一个subshell执行命令：
 使用coproc（bash 4.0版本之后支持）作为前缀执行的命令。
 要执行的文件不存在或者文件存在但不具备可执行权限的时候，这个执行过程会打开一个subshell执行。
 subshell中的$$取到的仍然是父进程bash的pid，如果想要取到subshell的pid，可以使用BASHPID变量
+
+ip route add xxxx/x dev eth0 via 10.0.0.3
+The "via 10.0.0.3" only has an effect on Ethernet networks. Ethernet doesn't know about IPv4 or IPv6, it only knows about MAC addresses. What "via 10.0.0.3" does is that when it has to send a packet to 8.8.8.8, it sets the IPv4 header's destination address to 8.8.8.8, but it sets the Ethernet header's destination address to the MAC address of the host which has the address 10.0.0.3. It figured out the last part by doing ARP resolution.

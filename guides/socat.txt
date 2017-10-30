@@ -1,0 +1,14 @@
+"netcat++" (extended design, new implementation)
+http://www.dest-unreach.org/socat/download/socat-2.0.0-b9.tar.gz
+
+// transport examples
+
+// socks relay (externally socksify applications);
+// your ssh client and OS are not socksified, but you want to pass a socks
+// server with ssh:
+$ socat TCP-LISTEN:10022,fork SOCKS4:socks.mydomain.org:ssh-serv:22
+$ ssh -p 10022 loopback 
+// or better define a ProxyCommand in ~/.ssh/config:
+ProxyCommand socat - SOCKS:socks.mydomain.org:%h:%p
+// and with proxy:
+ProxyCommand socat - PROXY:proxy.mydomain.org:%h:%p,proxyport=8000

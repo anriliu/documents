@@ -1,0 +1,90 @@
+Tinc is a Virtual Private Network (VPN) daemon that uses tunneling and encryption to create a secure private network between hosts on the Internet.
+it'relying both tcp and udp,tcp for metadata(routing and session key) exchanging and udp for data transport
+
+不必每个节点之间都创建meta连接，相互连接的两个node之间会交换路由信息，最终达到所有的节点直接拥有一致的路由信息。
+
+vi  /etc/tinc/myvpn/tinc.conf #comment out Connectto if you don't want to  initialize connetion to others from yourslef 
+Name = ozcd
+ConnectTo = bwg
+ConnectTo = ozvultr
+
+vi /etc/tinc/myvpn/hosts/ozcd  #add the subnets which  you want to be connected by this node,one subnet can be owned by more than one node with different weight（#50 is weight） Lower values indicate higher priority and drfault priority is 10
+Address = 182.150.17.113
+Port = 8655
+Subnet = 0.0.0.0/0#50
+Subnet = 172.20.100.10/32
+Mode = router    #default In this mode Subnet variables in the host configuration files will be used to form a routing table. it can be switch and hub also
+
+In router mode you can't control the routing table next hop by ip route add 'via ip' because the vpn tunnel is purely l3 network,you can only route traffic to the vpn network device and routing table was controlled by tinc daemon which can only be changed by hosts Subnet configuration from files.
+
+genkey:
+tincd  --generate-keys --net=myvpn
+
+scripts:
+/etc/tinc/netname/tinc-up
+This is the most important script. If it is present it will be executed right after the tinc daemon has been started and has connected to the virtual network device. It should be used to set up the corresponding network interface, but can also be used to start other things.
+
+Under Windows you can use the Network Connections control panel instead of creating this script.
+
+#!/bin/bash
+ip link set $INTERFACE up
+ip addr add  172.20.100.110/32 dev $INTERFACE
+ip route add 172.20.100.0/24 dev $INTERFACE
+
+
+
+/etc/tinc/netname/tinc-down
+This script is started right before the tinc daemon quits.
+
+#!/bin/bash
+ip route del 172.20.100.0/24 dev $INTERFACE
+ip addr del 172.20.100.110/32 dev $INTERFACE
+ip link set $INTERFACE down
+
+
+/etc/tinc/netname/hosts/host-up
+This script is started when the tinc daemon with name host becomes reachable.
+
+/etc/tinc/netname/hosts/host-down
+This script is started when the tinc daemon with name host becomes unreachable.
+
+/etc/tinc/netname/host-up
+This script is started when any host becomes reachable.
+
+/etc/tinc/netname/host-down
+This script is started when any host becomes unreachable.
+
+/etc/tinc/netname/subnet-up
+This script is started when a subnet becomes reachable. The Subnet and the node it belongs to are passed in environment variables.
+
+/etc/tinc/netname/subnet-down
+This script is started when a subnet becomes unreachable.
+
+The scripts are started without command line arguments, but can make use of certain environment variables. Under UNIX like operating systems the names of environment variables must be preceded by a $ in scripts. Under Windows, in .bat files, they have to be put between % signs.
+
+NETNAME
+If a netname was specified, this environment variable contains it.
+
+NAME
+Contains the name of this tinc daemon.
+
+DEVICE
+Contains the name of the virtual network device that tinc uses.
+
+INTERFACE
+Contains the name of the virtual network interface that tinc uses. This should be used for commands like ifconfig.
+
+NODE
+When a host becomes (un)reachable, this is set to its name. If a subnet becomes (un)reachable, this is set to the owner of that subnet.
+
+REMOTEADDRESS
+When a host becomes (un)reachable, this is set to its real address.
+
+REMOTEPORT
+When a host becomes (un)reachable, this is set to the port number it uses for communication with other tinc daemons.
+
+SUBNET
+When a subnet becomes (un)reachable, this is set to the subnet.
+
+WEIGHT
+When a subnet becomes (un)reachable, this is set to the subnet weight.
