@@ -106,3 +106,8 @@ Can be replaced with the following two lines without any problem:
 ip route add 0.0.0.0/1 dev $INTERFACE
 ip route add 128.0.0.0/1 dev $INTERFACE
 
+
+
+you can also use ip rule if only want to route by desertion or src address
+ip rule add to 8.8.8.8/32 table 999
+ip route add table 999 default dev myvpn
