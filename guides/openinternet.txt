@@ -2,7 +2,7 @@ kcptun to transport tcp traffic via udp for speeding up under unstable network
 redsock2 for tcp transparent proxy via http,socks5,https proxy
 dante for sock5 proxy server
 shadowsocks-libev+chinadns+iptables TPROXY+ipset+dnsmasq to proxy all none china ip 
-
+https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
 
 
  Create new chain
