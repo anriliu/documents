@@ -311,8 +311,8 @@ Stores an IPv4 host address, a network range, or an IPv4 network addresses with 
 ipset create set-name range start_ipaddr-end_ipaddr |ipaddr/prefix-length [netmask prefix-length] [timeout value] [counters] [comment]
 
 To create an IP set for a range of addresses using a prefix length, make use of the bitmap:ip set type as follows:
-ipset create my-range bitmap:ip range 192.168.33.0/28
-ipset add my-range 192.168.33.1
+ipset create my-range bitmap:ip range 192.168.33.0/28 timeout 3600    #timeout可以设置条目过期时间
+ipset add my-range 192.168.33.1 
 ipset add my-range 192.168.33.2-192.168.33.4
 
 To create an IP set for a range of address using a netmask, make use of the bitmap:ip set type as follows:

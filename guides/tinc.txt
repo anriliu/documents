@@ -7,13 +7,15 @@ vi  /etc/tinc/myvpn/tinc.conf #comment out Connectto if you don't want to  initi
 Name = ozcd
 ConnectTo = bwg
 ConnectTo = ozvultr
+Mode = router    #default In this mode Subnet variables in the host configuration files will be used to form a routing table. it can be switch and hub also
+
 
 vi /etc/tinc/myvpn/hosts/ozcd  #add the subnets which  you want to be connected by this node,one subnet can be owned by more than one node with different weight（#50 is weight） Lower values indicate higher priority and drfault priority is 10
 Address = 182.150.17.113
 Port = 8655
 Subnet = 0.0.0.0/0#50
 Subnet = 172.20.100.10/32
-Mode = router    #default In this mode Subnet variables in the host configuration files will be used to form a routing table. it can be switch and hub also
+Compression = 1  #This option sets the level of compression used for UDP packets.  Possible values are 0 (off), 1 (fast zlib) and any integer up to 9 (best zlib), 10 (fast lzo) and 11 (best lzo).
 
 In router mode you can't control the routing table next hop by ip route add 'via ip' because the vpn tunnel is purely l3 network,you can only route traffic to the vpn network device and routing table was controlled by tinc daemon which can only be changed by hosts Subnet configuration from files.
 
@@ -111,3 +113,18 @@ ip route add 128.0.0.0/1 dev $INTERFACE
 you can also use ip rule if only want to route by desertion or src address
 ip rule add to 8.8.8.8/32 table 999
 ip route add table 999 default dev myvpn
+
+
+if you want to use tinc vpn as default route then you can change route as below in tinc-up script:
+ORIGINAL_GATEWAY=`ip route show | grep ^default | cut -d ' ' -f 2-5`
+for i in `grep  -R ^Address /etc/tinc/ozintel/hosts/|awk '{print $3}'`
+do
+ip route add $i $ORIGINAL_GATEWAY
+done
+
+and add below in subnet-up script:
+ORIGINAL_GATEWAY=`ip route show | grep ^default | cut -d ' ' -f 2-5`
+ip route add $REMOTEADDRESS $ORIGINAL_GATEWAY
+ip route add 0.0.0.0/1 dev $INTERFACE metric $WEIGHT
+ip route add 128.0.0.0/1 dev $INTERFACE metric $WEIGHT
+~

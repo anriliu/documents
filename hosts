@@ -1,3 +1,4 @@
+#ansible-playbook -i hosts  activemq.yml -e "ansible_ssh_private_key_file=/opt/hzx/pro/xx.pem ansible_user=xxx" -b --ask-become-pass
 [common]
 #192.168.20.58 hostname=kong_uservice
 #192.168.20.59 hostname=mysql_uservice
