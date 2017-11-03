@@ -16,7 +16,7 @@
 #           hosts:
 #            - 'localhost'
 #            - '%'
-    - MYSQL_rootpwd: xxxx
+    - MYSQL_rootpwd: xsdYaassa
     - mysql_repl_master: 192.168.168.41
       mysql_repl_slave: 192.168.168.42
   roles: 

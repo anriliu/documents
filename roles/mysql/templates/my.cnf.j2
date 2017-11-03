@@ -57,5 +57,6 @@ pid-file=/var/run/mysqld/mysqld.pid
 skip-name-resolve=1
 log-bin=/var/log/mysqlbin/{{ansible_host.split('.')[-1]}}_mysql_bin
 binlog_rows_query_log_events=1
+server_id={{ansible_host.split('.')[-1]}}
+binlog_format=row
 {% endif %}
-
