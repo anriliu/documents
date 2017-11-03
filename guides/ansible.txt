@@ -1,3 +1,8 @@
+ansible for alicloud
+
+pip install ansible_alicloud
+
+
 Variables and Vaults
 
 Magic Variables, and How To Access Information About Other Hosts
