@@ -1,0 +1,15 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ec2s:
+      - VIP: 172.18.91.141 
+        ports:
+           - 2222/2222
+           - 4444/4444
+      - VIP: 172.18.91.142
+        ports:
+           - 3333/3333
+           - 2222/2222
+  roles: 
+    - {role: alicloud}
