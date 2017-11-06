@@ -19,9 +19,11 @@ aliyuncli ecs DescribeInstances --PublicIpAddresses "['$IP']" --filter Instances
 #with jq to find out security group id of instance which we knew its public IP
 aliyuncli ecs DescribeInstances |jq  ".Instances.Instance[]|{id: .InstanceId,sg: .SecurityGroupIds.SecurityGroupId[],ip: .PublicIpAddress.IpAddress[]}|select(.ip == \"$IP\")|.sg"
 
+#query by vpc ip
+aliyuncli ecs DescribeInstances |jq  ".Instances.Instance[]|{id: .InstanceId,sg: .SecurityGroupIds.SecurityGroupId[],vip: .VpcAttributes.PrivateIpAddress.IpAddress[]}|select(.vip == \"$IP\")|.sg"
+
 #get opened port of security
-aliyuncli ecs DescribeSecurityGroupAttribute --SecurityGroupId $SG --Direction ingress  --filter Permissions.Permission[*].[IpProtocol,PortRange,SourceCidrIp] --output tex
-t
+aliyuncli ecs DescribeSecurityGroupAttribute --SecurityGroupId $SG --Direction ingress  --filter Permissions.Permission[*].[IpProtocol,PortRange,SourceCidrIp] --output text
 #combine two cmds to get opening ports of instance by ip
 SG=$(aliyuncli ecs DescribeInstances --PublicIpAddresses "['$IP']" --filter Instances.Instance[*].SecurityGroupIds.SecurityGroupId --output text)
 aliyuncli ecs DescribeSecurityGroupAttribute --SecurityGroupId $SG --Direction ingress  --filter Permissions.Permission[*].[IpProtocol,PortRange] --output text
@@ -40,3 +42,4 @@ aliyuncli ecs RevokeSecurityGroup --IpProtocol ALL --PortRange -1/-1  --Security
 #authorize ingress policy by source ip range
 aliyuncli ecs RevokeSecurityGroup --IpProtocol TCP --PortRange 22/22  --SecurityGroupId $SG  --SourceCidrIp 0.0.0.0/0
 
+notes: with Protocol ALL you can specified PortRange other than -1/-1
