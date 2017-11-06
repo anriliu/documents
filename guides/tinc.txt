@@ -128,3 +128,19 @@ ip route add $REMOTEADDRESS $ORIGINAL_GATEWAY
 ip route add 0.0.0.0/1 dev $INTERFACE metric $WEIGHT
 ip route add 128.0.0.0/1 dev $INTERFACE metric $WEIGHT
 ~
+
+
+
+我们也可以通过ip rule+iptables+ip set+dnsmasq来实现特定的域名走vpn，那么就只需要在tinc-up里面添加路由表，
+/etc/tinc/neo/tinc-up 
+ip link set $INTERFACE up
+ip addr add  172.20.100.120/32 dev $INTERFACE
+ip route add 172.20.100.0/24 dev $INTERFACE
+ORIGINAL_GATEWAY=`ip route show | grep ^default | cut -d ' ' -f 2-5`
+for i in `grep  -R ^Address /etc/tinc/ozintel/hosts/|awk '{print $3}'`
+do
+ip route add $i $ORIGINAL_GATEWAY
+done
+ip route add table 999 default dev $INTERFACE
+ip rule add to 8.8.4.4 table 999
+iptables -t nat -A POSTROUTING -o neo -j SNAT --to-source 172.20.100.120
