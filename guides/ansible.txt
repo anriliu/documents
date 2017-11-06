@@ -86,3 +86,105 @@ tasks:
 
   - command: /bin/still/something_else
     when: result|skipped
+
+
+lookup
+Lookup plugins allow access of data in Ansible from outside sources. Like all templating, these plugins are evaluated on the Ansible control machine
+Contents can be read off the filesystem as follows:
+---
+- hosts: all
+  vars:
+     contents: "{{ lookup('file', '/etc/foo.txt') }}"
+
+  tasks:
+
+     - debug: msg="the value of foo.txt is {{ contents }}"
+
+After using register with a loop, the data structure placed in the variable will contain a results attribute that is a list of all responses from the module.
+- shell: "echo {{ item }}"
+  with_items:
+    - "one"
+    - "two"
+  register: echo
+- name: Fail if return code is not 0
+  fail:
+    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
+  when: item.rc != 0
+  with_items: "{{ echo.results }}"
+
+
+Looping over Subelements:
+Subelements walks a list of hashes and then traverses a list with a given (nested sub-)key inside of those records.
+---
+vars:
+ users:
+  - name: alice
+    authorized:
+      - /tmp/alice/onekey.pub
+      - /tmp/alice/twokey.pub
+    mysql:
+        password: mysql-password
+        hosts:
+          - "%"
+          - "127.0.0.1"
+          - "::1"
+          - "localhost"
+        privs:
+          - "*.*:SELECT"
+          - "DB1.*:ALL"
+  - name: bob
+    authorized:
+      - /tmp/bob/id_rsa.pub
+    mysql:
+        password: other-mysql-password
+        hosts:
+          - "db1"
+        privs:
+          - "*.*:SELECT"
+          - "DB2.*:ALL"
+
+- name: Setup MySQL users
+  mysql_user:
+    name: "{{ item.0.name }}"
+    password: "{{ item.0.mysql.password }}"
+    host: "{{ item.1 }}"
+    priv: "{{ item.0.mysql.privs | join('/') }}"
+  with_subelements:
+    - "{{ users }}"
+    - mysql.hosts
+
+
+
+Loop Control:
+the loop_control option can be used to specify the name of the variable to be used for the loop:
+ main.yml
+- include_tasks: inner.yml
+  with_items:
+    - 1
+    - 2
+    - 3
+  loop_control:
+    loop_var: outer_item
+# inner.yml
+- debug:
+    msg: "outer item={{ outer_item }} inner item={{ item }}"
+  with_items:
+    - a
+    - b
+    - c
+
+When using complex data structures for looping the display might get a bit too “busy”, this is where the label directive come to help then it will only display labeled stuff:
+- name: create servers
+  digital_ocean:
+    name: "{{ item.name }}"
+    state: present
+  with_items:
+    - name: server1
+      disks: 3gb
+      ram: 15Gb
+      network:
+        nic01: 100Gb
+        nic02: 10Gb
+        ...
+  loop_control:
+    label: "{{item.name}} {{item.ram}}"
