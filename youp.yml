@@ -1,0 +1,16 @@
+##ansible-playbook -i hosts  youp.yml --extra-vars 'ansible_ssh_private_key_file=/opt/hzx/pro/yang.pem ansible_user=liu' -b --ask-become-pass
+---
+- import_playbook: redis.yml
+- import_playbook: mongodb.yml
+- import_playbook: mysql.yml
+- import_playbook: python.yml
+- import_playbook: activemq.yml
+- import_playbook: alicloud.yml
+- hosts: python
+  tasks:
+  - name: install nginx
+    yum: name=nginx state=present
+    notify: restart nginx service
+  handlers:
+  - name: restart nginx service
+    service: name=nginx enabled=yes state=restarted 

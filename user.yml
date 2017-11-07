@@ -32,5 +32,5 @@
   - name: copy over ssh public key
     template: src="/opt/hzx/allen.pub" dest="/home/{{username}}/.ssh/authorized_keys"  mode=0600 owner={{username}}
     tags: adduser
-    when: username == "allen"
+    when: username == "liuyang"
 ...

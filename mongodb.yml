@@ -2,15 +2,14 @@
 - hosts: mongodb
   gather_facts: no
   vars:
-    - ZABBIX_SERVER: 127.0.0.1
     - MONGO_new:
          user: spider
-         db: convertor
-         passwd: admin
+         db: spider
+         passwd: sasasas345
          roles: dbOwner
     - DBLOGIN:
          user: admin
          db: admin
-         passwd: xxx
+         passwd: admin
   roles: 
     - {role: mongodb}

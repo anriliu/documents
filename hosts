@@ -36,6 +36,7 @@
 #192.168.20.64 hostname=timer_uservice
 #192.168.20.70
 #192.168.20.71
+172.18.91.146
 [localnet]
 #172.27.0.[204:205] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web /data/tomcat/tomcat-smartfoundry-api /data/tomcat/smartfoundry-hosting"
 #172.27.1.[7:8] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web"
@@ -53,13 +54,10 @@
 [ozoffice]
 #192.168.128.154 timezone='Asia/Shanghai'
 [mongodb]
-#19.108.10.89
 [redis]
 #192.168.168.44 slaveof=192.168.168.41
 #192.168.168.42 slaveof=192.168.168.41
-#192.168.168.41
 [python]
-#19.108.10.89
 [zookeeper]
 #192.168.168.44 ID=1
 #192.168.168.41 ID=2
@@ -71,5 +69,6 @@
 [mysql]
 #192.168.168.41 mysql_master=true
 #192.168.168.42 mysql_slave=true
-[nodejs]
 192.168.168.41
+[nodejs]
+#192.168.168.41

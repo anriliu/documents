@@ -25,15 +25,15 @@
   mysql_user: name=root password={{MYSQL_rootpwd}}
   when: root_stat.stat.isdir is not defined
 - name: create databases
-  mysql_db: name={{item.db}} state=present login_user=root login_password={{MYSQL_rootpwd}}
+  mysql_db: name={{item}} state=present login_user=root login_password={{MYSQL_rootpwd}}
   with_items: "{{MYSQLDBS}}"
   when: "MYSQLDBS is defined"
-- name: add mysql user for dbs
-  mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name={{item.0.user}} password={{item.0.passwd}} priv={{item.0.db}}.*:ALL host={{item.1}} state=present
+- name: add mysql users
+  mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name={{item.0.user}} password={{item.0.passwd}} priv="{{ item.0.privs | join('/') }}" host={{item.1}} state=present
   with_subelements:
-      - "{{MYSQLDBS}}"
+      - "{{MYSQLUSERS}}"
       - hosts
-  when: "MYSQLDBS is defined"
+  when: "MYSQLUSERS is defined"
 - name: add mysql user for replication
   mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name=dbrepl_user password=repl_userPwd priv="*.*:REPLICATION SLAVE" host="%"
   when: mysql_master is defined
