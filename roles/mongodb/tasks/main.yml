@@ -5,6 +5,7 @@
   yum: name={{item}} state=present
   with_items:
      - mongodb-org
+     - python2-pip
 - name: install pymongo
   pip: name=pymongo state=latest executable=pip
 - name: update mongodb configuration
@@ -17,7 +18,8 @@
   delay: 2
   ignore_errors: yes
 - name: add mongodb user for new db
-  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database={{MONGO_new.db}} name={{MONGO_new.user}} password={{MONGO_new.passwd}} roles={{MONGO_new.roles}} state=present
+  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database={{item}} name={{MONGO_new.user}} password={{MONGO_new.passwd}} roles={{MONGO_new.roles}} state=present
+  with_items: "{{MONGO_new.db}}"
 - name: enable auth
   replace:
    path: /etc/mongod.conf

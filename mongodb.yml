@@ -4,7 +4,9 @@
   vars:
     - MONGO_new:
          user: spider
-         db: spider
+         db:
+          - spider
+          - convertor
          passwd: sasasas345
          roles: dbOwner
     - DBLOGIN:

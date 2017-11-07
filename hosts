@@ -54,6 +54,7 @@
 [ozoffice]
 #192.168.128.154 timezone='Asia/Shanghai'
 [mongodb]
+192.168.168.41
 [redis]
 #192.168.168.44 slaveof=192.168.168.41
 #192.168.168.42 slaveof=192.168.168.41
@@ -69,6 +70,6 @@
 [mysql]
 #192.168.168.41 mysql_master=true
 #192.168.168.42 mysql_slave=true
-192.168.168.41
+#192.168.168.41
 [nodejs]
 #192.168.168.41
