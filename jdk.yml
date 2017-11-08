@@ -2,4 +2,4 @@
 - hosts: jdk
   gather_facts: no
   roles: 
-    - {role: activemq}
+    - {role: java}

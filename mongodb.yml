@@ -2,14 +2,14 @@
 - hosts: mongodb
   gather_facts: no
   vars:
-    - MONGO_new:
+     MONGO_new:
          user: spider
          db:
           - spider
           - convertor
          passwd: sasasas345
          roles: dbOwner
-    - DBLOGIN:
+     DBLOGIN:
          user: admin
          db: admin
          passwd: admin

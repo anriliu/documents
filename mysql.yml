@@ -2,8 +2,7 @@
 - hosts: mysql
   gather_facts: yes
   vars:
-    - ZABBIX_SERVER: 127.0.0.1
-    - MYSQLUSERS:
+     MYSQLUSERS:
          - user: has
            passwd: asassa
            hosts:
@@ -18,11 +17,11 @@
 #            - '%'
 #           privs:
 #             - "db1.*:SELECT"
-#    - MYSQLDBS:
+#     MYSQLDBS:
 #         - db1
 #         - db2
-    - MYSQL_rootpwd: xsdYssa
-    - mysql_repl_master: 192.168.168.41
-      mysql_repl_slave: 192.168.168.42
+     MYSQL_rootpwd: xsdYssa
+     mysql_repl_master: 192.168.168.41
+     mysql_repl_slave: 192.168.168.42
   roles: 
     - {role: mysql}

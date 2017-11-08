@@ -1,4 +1,8 @@
+{% if slaveof is defined %}
 bind 0.0.0.0
+{% else %}
+bind 127.0.0.1
+{% endif %}
 protected-mode no
 port 6379
 tcp-backlog 511

@@ -14,3 +14,11 @@
   handlers:
   - name: restart nginx service
     service: name=nginx enabled=yes state=restarted 
+- hosts: common
+  tasks:
+  - import_role:
+       name: common
+    vars:
+      ZABBIX_SERVER: 182.151.127.143
+    when: tags=="zabbix"
+

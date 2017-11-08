@@ -2,8 +2,8 @@
 - hosts: 172.27.1.3
   gather_facts: yes
   vars:
-    - ZABBIX_SERVER: 127.0.0.1
-    - MYSQLDBS:
+     ZABBIX_SERVER: 127.0.0.1
+     MYSQLDBS:
          - user: am_oauth2
            db: am_oauth2
            passwd: xxxx
@@ -16,12 +16,12 @@
            hosts:
             - 'localhost'
             - '%'
-    - MYSQL_rootpwd: xxxxx
-    - MONGO_oauthdb:
+     MYSQL_rootpwd: xxxxx
+     MONGO_oauthdb:
          user: gradmin
          db: oauth_log
          passwd: gxxxx
-    - RABBITMQ:
+     RABBITMQ:
          user: jone
          paswd: changeit
   roles: 
