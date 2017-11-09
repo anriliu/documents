@@ -14,6 +14,18 @@ vi  /etc/mongod.conf
 security:
    authorization: enabled
 
+For replication you have to setup one of below internal authentication if enabled authorization
+a. Keyfiles
+echo -e "my secret key" > mongo.keyfile
+chmod 600 mongo.keyfile
+chown mongod mongo.keyfile
+To specify the keyfile, use the security.keyFile setting or --keyFile command line option.
+
+
+b. x.509
+security.clusterAuthMode and net.ssl.clusterFile if using a configuration file, or
+--clusterAuthMode and --sslClusterFile command line options.
+
 2. create db owner for specified db
 mongo --port 27017 -u "myUserAdmin" -p "abc123" --authenticationDatabase "admin"
 or 
@@ -40,7 +52,27 @@ db.createUser(
 )
 
 
-mongodump以bson格式备份数据库或者collections,备份后的文件可以通过mongorestore来恢复：
+replication:
+following example specifies the replica set name through the --replSet command-line option
+You can also specify the security.replSetName in a configuration file. 
+
+Use rs.initiate() on one and only one member of the replica set:
+then change first member host name to ip before add other memebers because it always set the first member host name as os hostname and other memebers may not able to connect 
+cfg = rs.conf()
+cfg.members[0].host = "192.168.168.21:27017"
+rs.reconfig(cfg)
+
+then add the rest members from primary:
+rs.add("192.168.168.23")
+
+You can force a replica set member to become primary by giving it a higher members[n].priority
+members[n].priority value to 0, which means the member can never seek election as primary. 
+
+connect to primary
+mongo "mongodb://172.18.91.147:27017,172.18.91.148:27017,172.18.91.149:27017/dbname?replicaSet=repname" -uusernmae -ppasswd
+
+
+mongodumi以bson格式备份数据库或者collections,备份后的文件可以通过mongorestore来恢复：
 mongodump  --db test
 mongodump  --db test --collection collection
 mongodump --host mongodb1.example.net --port 37017 --username user --password pass --out /opt/backup/mongodump-2011-10-24

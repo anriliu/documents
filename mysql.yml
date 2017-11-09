@@ -3,8 +3,8 @@
   gather_facts: yes
   vars:
      MYSQLUSERS:
-         - user: has
-           passwd: asassa
+         - user: hgz
+           passwd: UpingEW@7812
            hosts:
             - 'localhost'
             - '%'
@@ -20,8 +20,7 @@
 #     MYSQLDBS:
 #         - db1
 #         - db2
-     MYSQL_rootpwd: xsdYssa
-     mysql_repl_master: 192.168.168.41
-     mysql_repl_slave: 192.168.168.42
+     MYSQL_rootpwd: xdYta*221o90
+     mysql_repl_master: 172.18.91.147
   roles: 
     - {role: mysql}

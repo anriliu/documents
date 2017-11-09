@@ -1,0 +1,8 @@
+rs.initiate()
+sleep(13000)
+{% for host in groups['mongodb'] %}
+
+rs.add("{{ host }}")
+sleep(8000)
+{% endfor %}
+printjson(rs.status())

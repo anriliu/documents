@@ -4,6 +4,7 @@
 - name: install mongodb server
   yum: name={{item}} state=present
   with_items:
+     - epel-release
      - mongodb-org
      - python2-pip
 - name: install pymongo
@@ -26,3 +27,25 @@
    regexp: '^#security:'
    replace: 'security: \n  authorization: enabled'
   notify: restart mongodb
+- block:
+  - name: enable internal auth
+    replace:
+      path: /etc/mongod.conf
+      regexp: 'authorization: enabled'
+      replace: 'authorization: enabled \n  keyFile: /etc/mongo.key'
+    notify: restart mongodb
+  - name: generate internal key file
+    copy: content="{{mongo_key}}"  dest="/etc/mongo.key" mode=0600 owner=mongod
+  - name: enable replication
+    replace:
+      path: /etc/mongod.conf
+      regexp: '^#replication:'
+      replace: 'replication: \n  replSetName: {{replication_name}}'
+    notify: restart mongodb
+  - meta: flush_handlers
+  - name: Create the file to initialize the mongod replica set
+    template: src=repset_init.j2 dest=/tmp/repset_init.js
+  - name: Initialize the replication set
+    shell: /usr/bin/mongo -u{{DBLOGIN.user}} -p{{DBLOGIN.passwd}} /tmp/repset_init.js
+    run_once: true
+  when: replication_name is defined

@@ -1,17 +1,19 @@
 ---
 - hosts: mongodb
-  gather_facts: no
+  gather_facts: yes
   vars:
      MONGO_new:
-         user: spider
+         user: spiderhrx
          db:
           - spider
           - convertor
-         passwd: sasasas345
+         passwd: spider.Test*12345
          roles: dbOwner
      DBLOGIN:
-         user: admin
+         user: hrxdbadmin
          db: admin
-         passwd: admin
+         passwd: a*987654321#123
+     mongo_key: IamherefOrei3112
+     replication_name: youpinrep
   roles: 
     - {role: mongodb}
