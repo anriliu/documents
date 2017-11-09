@@ -1,27 +1,31 @@
 ---
-- name: download python src file
-  unarchive:
-#    src: https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
-    src: /opt/Python-3.6.2.tgz
-    dest: /opt/
-#    remote_src: True
-- name: install python dependences
-  yum: name={{item}} state=present
-  with_items:
-     - bzip2-devel
-     - openssl-devel
-     - sqlite-devel
-     - unzip
-     - make
-     - gcc
-- name: compile and install python3.6.2
-  shell: "{{ item }}"
-  args: 
-    chdir: /opt/Python-3.6.2
-  with_items:
-    - ./configure
-    - make 
-    - make install
+- stat: path=/usr/local/bin/python3.6
+  register: python_bin
+- block:
+  - name: download python src file
+    unarchive:
+#      src: https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
+      src: /opt/Python-3.6.2.tgz
+      dest: /opt/
+#      remote_src: True
+  - name: install python dependences
+    yum: name={{item}} state=present
+    with_items:
+       - bzip2-devel
+       - openssl-devel
+       - sqlite-devel
+       - unzip
+       - make
+       - gcc
+  - name: compile and install python3.6.2
+    shell: "{{ item }}"
+    args: 
+      chdir: /opt/Python-3.6.2
+    with_items:
+      - ./configure
+      - make 
+      - make install
+  when: "python_bin.stat.exists == False"
 - name: install pymongo
   pip: name={{ item }} state=latest executable=/usr/local/bin/pip3
   with_items:
