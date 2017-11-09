@@ -1,0 +1,11 @@
+To get changed file content from last commit
+
+git log -1 branch_namea --name-only #find out if file was changed
+git ls-tree --full-name -r  d1ec77946d252944c85267125e195b096e19a569|grep fullpath_file_name|awk '{print $3}'#find out the file hash
+git cat-file -p 75c626769188ead69909139745b7ce507a6a1a73  #list file content
+OR all in one command
+file='myfile';branch='master'
+git log -1 --name-only $branch|grep $file&&git log --pretty=format:"%H" -1 $branch|xargs git ls-tree -r|grep $file|awk '{print $3}'|xargs git cat-file -p
+
+
+
