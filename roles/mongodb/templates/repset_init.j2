@@ -1,7 +1,9 @@
 rs.initiate()
+cfg = rs.conf()
+cfg.members[0].host = "{{ansible_host}}:27017"
+rs.reconfig(cfg)
 sleep(13000)
 {% for host in groups['mongodb'] %}
-
 rs.add("{{ host }}")
 sleep(8000)
 {% endfor %}

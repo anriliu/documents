@@ -3,17 +3,17 @@
   gather_facts: yes
   vars:
      MONGO_new:
-         user: spiderhrx
+         user: spider
          db:
           - spider
           - convertor
-         passwd: spider.Test*12345
+         passwd: test*12345
          roles: dbOwner
      DBLOGIN:
-         user: hrxdbadmin
+         user: admin
          db: admin
-         passwd: a*987654321#123
-     mongo_key: IamherefOrei3112
-     replication_name: youpinrep
+         passwd: admin
+     mongo_key: IamherefOreijkjjk
+     replication_name: pinrep
   roles: 
     - {role: mongodb}

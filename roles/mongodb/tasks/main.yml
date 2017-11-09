@@ -21,6 +21,7 @@
 - name: add mongodb user for new db
   mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database={{item}} name={{MONGO_new.user}} password={{MONGO_new.passwd}} roles={{MONGO_new.roles}} state=present
   with_items: "{{MONGO_new.db}}"
+  ignore_errors: yes
 - name: enable auth
   replace:
    path: /etc/mongod.conf
@@ -31,8 +32,8 @@
   - name: enable internal auth
     replace:
       path: /etc/mongod.conf
-      regexp: 'authorization: enabled'
-      replace: 'authorization: enabled \n  keyFile: /etc/mongo.key'
+      regexp: '^security: \n  authorization: enabled \n^$'
+      replace: 'security: \n  authorization: enabled \n  keyFile: /etc/mongo.key'
     notify: restart mongodb
   - name: generate internal key file
     copy: content="{{mongo_key}}"  dest="/etc/mongo.key" mode=0600 owner=mongod
@@ -46,6 +47,6 @@
   - name: Create the file to initialize the mongod replica set
     template: src=repset_init.j2 dest=/tmp/repset_init.js
   - name: Initialize the replication set
-    shell: /usr/bin/mongo -u{{DBLOGIN.user}} -p{{DBLOGIN.passwd}} /tmp/repset_init.js
+    shell: /usr/bin/mongo --authenticationDatabase admin -u{{DBLOGIN.user}} -p{{DBLOGIN.passwd}} /tmp/repset_init.js
     run_once: true
   when: replication_name is defined
