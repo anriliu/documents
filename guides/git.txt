@@ -8,4 +8,5 @@ file='myfile';branch='master'
 git log -1 --name-only $branch|grep $file&&git log --pretty=format:"%H" -1 $branch|xargs git ls-tree -r|grep $file|awk '{print $3}'|xargs git cat-file -p
 
 
-
+check current working space difference from remote branch
+git log origin/master..HEAD --name-only
