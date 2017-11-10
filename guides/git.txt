@@ -10,3 +10,7 @@ git log -1 --name-only $branch|grep $file&&git log --pretty=format:"%H" -1 $bran
 
 check current working space difference from remote branch
 git log origin/master..HEAD --name-only
+
+
+git status
+git stash
