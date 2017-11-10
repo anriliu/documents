@@ -85,6 +85,20 @@ rs.syncFrom("hostname<:port>");
 connect to primary
 mongo "mongodb://172.18.91.147:27017,172.18.91.148:27017,172.18.91.149:27017/dbname?replicaSet=repname" -uusernmae -ppasswd
 
+Write Concern:
+Write concern describes the level of acknowledgement requested from MongoDB for write operations( insert, update, and delete, bulk for mongos) to a standalone mongod or to replica sets or to sharded clusters.
+Write concern can include the following fields:
+{ w: <value>, j: <boolean>, wtimeout: <number> }
+the w option to request acknowledgement that the write operation has propagated to a specified number of mongod instances or to mongod instances with specified tags.
+w can be <number>,"majority" and <tag set>
+the j option to request acknowledgement that the write operation has been written to the journal
+js can be true for false
+the wtimeout option to specify a time limit to prevent write operations from blocking indefinitely.
+This option specifies a time limit, in milliseconds is only applicable for w values greater than 1,wtimeout causes write operations to return with an error after the specified limit
+With writeConcernMajorityJournalDefault set to false, MongoDB will not wait for w: "majority" writes to be durable before acknowledging the writes. As such, "majority" write operations could possibly roll back in the event of a loss of a replica set member.
+writeConcernMajorityJournalDefault
+Default: true if Replica Set protocolVersion is 1 and false if protocolVersion is 0
+
 Convert replicati to standalone
 1. dorp local db
 use local
