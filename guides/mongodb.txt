@@ -60,17 +60,38 @@ Use rs.initiate() on one and only one member of the replica set:
 then change first member host name to ip before add other memebers because it always set the first member host name as os hostname and other memebers may not able to connect 
 cfg = rs.conf()
 cfg.members[0].host = "192.168.168.21:27017"
-rs.reconfig(cfg)
+rs.reconfig(cfg) 
+
+rs.reconfig(cfg, {force : true}) #When you use force : true, the version number in the replica set configuration increases significantly, by tens or hundreds of thousands.
+# rs.reconfig() shell method can force the current primary to step down, which causes an election. When the primary steps down, the mongod closes all client connections. 
 
 then add the rest members from primary:
 rs.add("192.168.168.23")
+use rs.addArb() to Arbiter which hold  no data but can elect a primary,if you want to convert a secondary node to arbiter you must stop and remove its data file first
 
 You can force a replica set member to become primary by giving it a higher members[n].priority
 members[n].priority value to 0, which means the member can never seek election as primary. 
 
+to delete memeber from replication set:
+a.when u have more than two memebers online
+rs.remove()
+b.when u have less than three online memebers you can't do rs.remove because if one server from two is down, the mongodb setting is configured to not allow any writes to the remaining online server. 
+cfg = rs.conf()
+cfg.members.splice(2,1)  ##从rs.conf()的memebers列表中id为2的元素，开始的第1个member，也就是id为2的member 
+rs.reconfig(cfg) 
+
+修改同步的目标
+rs.syncFrom("hostname<:port>");
 connect to primary
 mongo "mongodb://172.18.91.147:27017,172.18.91.148:27017,172.18.91.149:27017/dbname?replicaSet=repname" -uusernmae -ppasswd
 
+Convert replicati to standalone
+1. dorp local db
+use local
+db.dropDatabase();
+2.change configurations
+comment out configuration file about if you have replication configuration
+systemctl restart mongod 
 
 mongodumi以bson格式备份数据库或者collections,备份后的文件可以通过mongorestore来恢复：
 mongodump  --db test
