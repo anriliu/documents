@@ -69,4 +69,5 @@ SUM(Com_xxx) + Qcache_hits
 
 
 zabbix monitor slave status(if the returned value is less than 2 then there is a slave error there)
+the db user  for zabbbix need  REPLICATION CLIENT,SELECT pprivileges
 UserParameter=mysql.slave,HOME=/var/lib/zabbix mysql -e 'SHOW SLAVE STATUS\G' | egrep '(Slave_IO_Running|Slave_SQL_Running):' | awk -F: 'BEGIN{a=0}{if (($$1 ~ /.*Slave_IO_Running/ && $$2 ~ /Yes.*/) || ($$1 ~ /.*Slave_SQL_Running/ && $$2 ~ /Yes.*/)){a++;}}END{print a;}'

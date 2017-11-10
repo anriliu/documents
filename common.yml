@@ -3,6 +3,7 @@
 - hosts: common
   gather_facts: yes
   vars:
-     ZABBIX_SERVER: 182.151.127.143
+     ZABBIX_SERVER: 192.168.168.44
+#     all_tasks: yes
   roles: 
     - common

@@ -34,6 +34,15 @@
       - "{{MYSQLUSERS}}"
       - hosts
   when: "MYSQLUSERS is defined"
+  tags: adduser
+- name: add zabbix monitoring users
+  mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name={{MNUSER.user}} password={{MNUSER.passwd}} priv="*.*:REPLICATION CLIENT,SELECT" host=localhost state=present
+  when: MNUSER is defined
+  tags: adduser  
+- name: copy zabbix monitoring db user
+  template: src=mn.cnf.j2 dest=/var/lib/zabbix/.my.cnf mode=0600 owner=zabbix
+  when: MNUSER is defined
+  tags: adduser
 - name: add mysql user for replication
   mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name=dbrepl_user password=repl_userPwd priv="*.*:REPLICATION SLAVE" host="%"
   when: mysql_master is defined

@@ -2,14 +2,17 @@
 - hosts: mysql
   gather_facts: yes
   vars:
-     MYSQLUSERS:
-         - user: hgz
-           passwd: Upinsasas
-           hosts:
-            - 'localhost'
-            - '%'
-           privs:
-            - "*.*:ALL"
+#     MNUSER: 
+#         user: zabbixmn
+#         passwd: minxxxng321
+#     MYSQLUSERS:
+#         - user: zabbixa
+#           passwd: monitoring3445
+#           hosts:
+#            - 'localhost'
+#            - '%'
+#           privs:
+#            - "*.*:REPLICATION CLIENT,SELECT"
 #         - user: ttlt
 #           passwd: xxxx
 #           hosts:
@@ -20,7 +23,7 @@
 #     MYSQLDBS:
 #         - db1
 #         - db2
-     MYSQL_rootpwd: xdYta*221o90
+     MYSQL_rootpwd: xdYt2ddd21o90
      mysql_repl_master: 172.18.91.147
   roles: 
     - {role: mysql}
