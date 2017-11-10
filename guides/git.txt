@@ -13,4 +13,9 @@ git log origin/master..HEAD --name-only
 
 
 git status
-git stash
+git stash  #Use git stash when you want to record the current state of the working directory and the index, but want to go back to a clean working directory.
+       The command saves your local modifications away and reverts the working directory to match the HEAD commit.
+The modifications stashed away by this command can be listed with git stash list, inspected with git stash show, and restored (potentially on top
+       of a different commit) with git stash apply. 
+
+customhooks中会设置 $GIT_DIR变量，如果要再非当前repo执行命令，需要unset $GIT_DIR

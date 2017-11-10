@@ -29,7 +29,7 @@
 - replace: dest=/etc/zabbix/zabbix_agentd.conf regexp='^# Timeout=3' replace='Timeout=10'
   notify: restart zabbix
   tags: zabbix
-- file: path=/var/lib/zabbix state=directory mode=0660 owner=zabbix group=root
+- file: path=/var/lib/zabbix state=directory mode=0770 owner=zabbix group=root
   tags: zabbix
 - block:
   #- copy: src=resolv.conf dest=/etc/resolv.conf
