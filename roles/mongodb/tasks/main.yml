@@ -21,13 +21,23 @@
 - name: add mongodb user for new db
   mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database={{item}} name={{MONGO_new.user}} password={{MONGO_new.passwd}} roles={{MONGO_new.roles}} state=present
   with_items: "{{MONGO_new.db}}"
+  when: MONGO_new is defined
   ignore_errors: yes
+- name: add mongodb user for monitoring
+  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database=zabbix name=zabbix password=zabbix32112 roles=dbOwner state=present
+  ignore_errors: yes
+  when: MONMN is defined
 - name: enable auth
   replace:
    path: /etc/mongod.conf
    regexp: '^#security:'
    replace: 'security: \n  authorization: enabled'
   notify: restart mongodb
+- name: find master member
+  shell:  /usr/bin/mongo --authenticationDatabase admin -u{{DBLOGIN.user}} -p{{DBLOGIN.passwd}} -eval "rs.status().members.find(r=>r.state===1).name"
+  run_once: true
+  register: mongo_master 
+  ignore_errors: yes
 - block:
   - name: enable internal auth
     replace:
@@ -49,4 +59,4 @@
   - name: Initialize the replication set
     shell: /usr/bin/mongo --authenticationDatabase admin -u{{DBLOGIN.user}} -p{{DBLOGIN.passwd}} /tmp/repset_init.js
     run_once: true
-  when: replication_name is defined
+  when: replication_name is defined and mongo_master.failed == true

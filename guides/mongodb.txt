@@ -52,9 +52,13 @@ db.createUser(
 )
 
 
-replication:
+Replication:
 following example specifies the replica set name through the --replSet command-line option
 You can also specify the security.replSetName in a configuration file. 
+
+When you initialize the full replica set at once, every node should not have data.
+When you turn an existing single node into a replica set, its data becomes the replica set data, and then adding additional nodes will replicate data to them wiping out their existing data.
+What you should be doing is starting up the nodes, initializing the replica set and then creating users (only on the primary).
 
 Use rs.initiate() on one and only one member of the replica set:
 then change first member host name to ip before add other memebers because it always set the first member host name as os hostname and other memebers may not able to connect 

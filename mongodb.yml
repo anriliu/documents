@@ -1,7 +1,8 @@
 ---
 - hosts: mongodb
-  gather_facts: yes
+  gather_facts: no
   vars:
+     MONMN: yes
      MONGO_new:
          user: spider
          db:
