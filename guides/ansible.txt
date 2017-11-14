@@ -45,7 +45,21 @@ We then have role_path which will return the current role’s pathname (since 1.
 
 And finally, ansible_check_mode (added in version 2.1), a boolean magic variable which will be set to True if you run Ansible with --check.
 
+Unsafe or Raw Strings:
+As of Ansible 2.0, there is an internal data type for declaring variable values as “unsafe”. This means that the data held within the variables value should be treated as unsafe preventing unsafe character subsitition and information disclosure.
+Jinja2 contains functionality for escaping, or telling Jinja2 to not template data by means of functionality such as {% raw %} ... {% endraw %}, however this uses a more comprehensive implementation to ensure that the value is never templated.
 
+Using YAML tags, you can also mark a value as “unsafe” by using the !unsafe tag such as:
+---
+my_unsafe_variable: !unsafe 'this variable has {{ characters that should not be treated as a jinja2 template'
+
+For complex variables such as hashes or arrays, !unsafe should be used on the individual elements such as:
+---
+my_unsafe_array:
+    - !unsafe 'unsafe element'
+    - 'safe element'
+my_unsafe_hash:
+    unsafe_key: !unsafe 'unsafe value'
 
 
 Variable Precedence
@@ -87,6 +101,25 @@ tasks:
   - command: /bin/still/something_else
     when: result|skipped
 
+With the ‘’any_errors_fatal’’ option, any failure on any host in a multi-host play will be treated as fatal and Ansible will exit immediately without waiting for the other hosts.
+---
+- hosts: load_balancers_dc_a
+  any_errors_fatal: True
+  tasks:
+  - name: 'shutting down datacenter [ A ]'
+    command: /usr/bin/disable-dc
+
+- hosts: frontends_dc_a
+  tasks:
+  - name: 'stopping service'
+    command: /usr/bin/stop-software
+  - name: 'updating software'
+    command: /usr/bin/upgrade-software
+
+- hosts: load_balancers_dc_a
+  tasks:
+  - name: 'Starting datacenter [ A ]'
+    command: /usr/bin/enable-dc
 
 lookup
 Lookup plugins allow access of data in Ansible from outside sources. Like all templating, these plugins are evaluated on the Ansible control machine
@@ -188,3 +221,71 @@ When using complex data structures for looping the display might get a bit too �
         ...
   loop_control:
     label: "{{item.name}} {{item.ram}}"
+
+
+Local Playbooks
+It may be useful to use a playbook locally, rather than by connecting over SSH
+To run an entire playbook locally, just set the “hosts:” line to “hosts: 127.0.0.1” and then run the playbook like so:
+ansible-playbook playbook.yml --connection=local
+
+Alternatively, a local connection can be used in a single playbook play, even if other plays in the playbook use the default remote connection type:
+- hosts: 127.0.0.1
+  connection: local
+
+
+Delegation:
+If you want to perform a task on one host with reference to other hosts, use the ‘delegate_to’ keyword on a task. 
+---
+
+- hosts: webservers
+  serial: 5
+
+  tasks:
+  - name: take out of load balancer pool
+    command: /usr/bin/take_out_of_pool {{ inventory_hostname }}
+    delegate_to: 127.0.0.1
+  - name: actual steps would go here
+    yum: name=acme-web-stack state=latest
+
+There is also a shorthand syntax that you can use on a per-task basis: ‘local_action’. Here is the same playbook as above, but using the shorthand syntax for delegating to 127.0.0.1:
+tasks:
+
+  - name: take out of load balancer pool
+    local_action: command /usr/bin/take_out_of_pool {{ inventory_hostname }}
+
+In case you have to specify more arguments you can use the following syntax:
+---
+# ...
+  tasks:
+
+  - name: Send summary mail
+    local_action:
+      module: mail
+      subject: "Summary Mail"
+      to: "{{ mail_recipient }}"
+      body: "{{ mail_body }}"
+    run_once: True
+
+Delegated facts:
+By default, any fact gathered by a delegated task are assigned to the inventory_hostname (the current host) instead of the host which actually produced the facts (the delegated to host). In 2.0, the directive delegate_facts may be set to True to assign the task’s gathered facts to the delegated host instead of the current one.:
+
+- hosts: app_servers
+  tasks:
+    - name: gather facts from db servers
+      setup:
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['dbservers']}}"
+
+
+Run Once:
+In some cases there may be a need to only run a task one time and only on one host. This can be achieved by configuring “run_once” on a task:
+- command: /opt/application/upgrade_db.py
+  run_once: true
+  delegate_to: web01.example.org
+
+When “run_once” is not used with “delegate_to” it will execute on the first host, as defined by inventory, 
+This approach is similar to applying a conditional to a task such as:
+
+- command: /opt/application/upgrade_db.py
+  when: inventory_hostname == webservers[0]

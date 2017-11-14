@@ -1,6 +1,8 @@
 ##ansible-playbook -i hosts  youp.yml --extra-vars 'ansible_ssh_private_key_file=/opt/hzx/pro/yang.pem ansible_user=liu' -b --ask-become-pass
 ---
 - import_playbook: common.yml
+- import_playbook: zookeeper.yml
+  when: cluster is defined and cluster == "true"
 - import_playbook: redis.yml
 - import_playbook: mongodb.yml
 - import_playbook: mysql.yml

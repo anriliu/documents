@@ -2,13 +2,12 @@
 - hosts: zookeeper
   gather_facts: no
   vars:
-    - ZABBIX_SERVER: 127.0.0.1
     - ZKPS: 
         - ID: 1 
-          IP: 192.168.168.44
+          IP: 192.168.168.11
         - ID: 2
-          IP: 192.168.168.41
+          IP: 192.168.168.22
         - ID: 3 
-          IP: 192.168.168.42
+          IP: 192.168.168.33
   roles: 
     - {role: zookeeper}
