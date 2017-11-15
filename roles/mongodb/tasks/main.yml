@@ -42,8 +42,8 @@
   - name: enable internal auth
     replace:
       path: /etc/mongod.conf
-      regexp: '^security: \n  authorization: enabled \n^$'
-      replace: 'security: \n  authorization: enabled \n  keyFile: /etc/mongo.key'
+      regexp: '^(security: \n  authorization: enabled).*\n^$'
+      replace: '\1 \n  keyFile: /etc/mongo.key'
     notify: restart mongodb
   - name: generate internal key file
     copy: content="{{mongo_key}}"  dest="/etc/mongo.key" mode=0600 owner=mongod

@@ -1,4 +1,7 @@
 ---
+- name: check active file status
+  stat: path=/opt/apache-activemq-5.15.0/
+  register: actpath
 - name: download activemq-5.15 file
   unarchive:
     src: http://archive.apache.org/dist/activemq/5.15.0/apache-activemq-5.15.0-bin.tar.gz
@@ -6,6 +9,7 @@
     remote_src: True
     owner: nobody
     group: nobody
+  when: actpath.stat.islnk is not defined
 - name: create link for root folder
   file: state=link src=/opt/apache-activemq-5.15.0 dest=/opt/apache-activemq
 - name: copy init script

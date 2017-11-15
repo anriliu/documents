@@ -2,11 +2,13 @@
 - stat: path=/usr/bin/java
   register: java_bin
 - block: 
-  - name: download oracle jdk8
-    get_url:
-      url: http://download.oracle.com/otn-pub/java/jdk/8u152-b16/aa0333dd3019491ca4f6ddbe78cdb6d0/jdk-8u152-linux-x64.rpm
-      dest: /tmp/jdk-8u152-linux-x64.rpm
-      headers: "Cookie: oraclelicense=accept-securebackup-cookie"
+#  - name: download oracle jdk8
+#    get_url:
+#      url: http://download.oracle.com/otn-pub/java/jdk/8u152-b16/aa0333dd3019491ca4f6ddbe78cdb6d0/jdk-8u152-linux-x64.rpm
+#      dest: /tmp/jdk-8u152-linux-x64.rpm
+#      headers: "Cookie: oraclelicense=accept-securebackup-cookie"
+  - name: copy over jdk rpm file
+    copy: src=/opt/jdk-8u152-linux-x64.rpm dest=/tmp/jdk-8u152-linux-x64.rpm
   - name: install jdk8
     yum: name=/tmp/jdk-8u152-linux-x64.rpm
   - name: export JAVA_HOME env

@@ -6,6 +6,9 @@ sentinel monitor redis-master {{redismaster}} 6379 2
 {% endif %}
 sentinel down-after-milliseconds redis-master 5000
 sentinel parallel-syncs redis-master 2
+{% if redispass is defined %}
+sentinel auth-pass redis-master {{redispass}}
+{% endif %}
 #sentinel auth-pass redis-master 000000
 #sentinel notification-script redis-master /etc/redis/notify.sh
 #sentinel client-reconfig-script redis-master /etc/redis/failover.sh

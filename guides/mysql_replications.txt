@@ -433,8 +433,12 @@ INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
 On the master:
 [mysqld]
 rpl_semi_sync_master_enabled=1
-rpl_semi_sync_master_timeout=1000 # 1 second
+rpl_semi_sync_master_timeout=1000 # 触发master从半同步复制切换回异步复制，slave的应答超时时间，默认为10000（10秒）
 
 On each slave:
 [mysqld]
 rpl_semi_sync_slave_enabled=1
+
+monitoring:
+SHOW VARIABLES LIKE 'rpl_semi_sync%';
+SHOW STATUS LIKE 'Rpl_semi_sync%';

@@ -3,18 +3,18 @@
   gather_facts: no
   vars:
      MONMN: yes
-     MONGO_new:
-         user: spider
-         db:
-          - spider
-          - convertor
-         passwd: test*12345
-         roles: dbOwner
+#     MONGO_new:
+#         user: hrxznfw
+#         db:
+#          - znfw
+#          - convertor
+#         passwd: Jst&shwj123
+#         roles: dbOwner
      DBLOGIN:
          user: admin
          db: admin
-         passwd: admin
-     mongo_key: IamherefOreijkjjk
-     replication_name: pinrep
+         passwd: ad112#112
+     mongo_key: IasefoIreijkjjk
+     replication_name: zn222ep
   roles: 
     - {role: mongodb}

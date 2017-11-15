@@ -24,6 +24,6 @@
 #         - db1
 #         - db2
      MYSQL_rootpwd: xdYt2ddd21o90
-     mysql_repl_master: 172.18.91.147
+     mysql_repl_master: 192.168.168.41
   roles: 
     - {role: mysql}
