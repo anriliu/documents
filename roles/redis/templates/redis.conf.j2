@@ -51,7 +51,7 @@ client-output-buffer-limit pubsub 32mb 8mb 60
 hz 10
 aof-rewrite-incremental-fsync yes
 {% if redispass is defined %}
-terauth {{redispass}}
+masterauth {{redispass}}
 requirepass {{redispass}}
 {% endif %}
 {% if slaveof is defined %}

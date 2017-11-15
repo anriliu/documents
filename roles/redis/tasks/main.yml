@@ -45,6 +45,12 @@
      - redis.conf.j2
      - sentinel.conf.j2
   notify: start redis
+- name: replace zabbix monitoring script
+  lineinfile:
+     path:  /etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf
+     regexp: 'redisrole'
+     line: "UserParameter=redisrole,redis-cli -a {{redispass}} info replication|grep 'role:master' >>/dev/null&&echo 1||echo 0"
+  when: redispass is defined
 - name: copy init script
   copy: 
     src: "{{ item }}"

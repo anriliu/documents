@@ -49,7 +49,7 @@ case "$1" in
         else
             PID=$(cat $PIDFILE)
             echo "Stopping ..."
-            $CLIEXEC -p $REDISPORT shutdown
+            kill  $PID
             while [ -x /proc/${PID} ]
             do
                 echo "Waiting for Redis to shutdown ..."
@@ -60,11 +60,11 @@ case "$1" in
         fi
         ;;
     status)
-        PID=$(cat $PIDFILE)
-        if [ ! -x /proc/${PID} ]
+        if [ ! -f $PIDFILE ]
         then
             echo 'Redis is not running'
         else
+            PID=$(cat $PIDFILE)
             echo "Redis is running ($PID)"
         fi
         ;;
