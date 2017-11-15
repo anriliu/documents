@@ -67,7 +67,19 @@ SUM(Com_xxx) + Qcache_hits
 = Questions + statements executed within stored programs
 = Queries
 
+character set： 编码方式
+collation: 即比对方法,用于指定数据集如何排序，以及字符串的比对规则
+mysql 有两个支持 unicode 的 character set:
+1. ucs2: 使用 16 bits 来表示一个 unicode 字符
+2. utf8: 使用 1~3 bytes 来表示一个 unicode 字符
+show collation;  
+collation 名字的规则可以归纳为这两类：
+1. <character set>_<language/other>_<ci/cs>#ci 是 case insensitive 的缩写， cs 是 case sensitive 的缩写
+2. <character set>_bin
+在 ci 的 collation 下，比对时区分大小写：
+select * from pet where name = binary 'whistler';
 
 zabbix monitor slave status(if the returned value is less than 2 then there is a slave error there)
 the db user  for zabbbix need  REPLICATION CLIENT,SELECT pprivileges
 UserParameter=mysql.slave,HOME=/var/lib/zabbix mysql -e 'SHOW SLAVE STATUS\G' | egrep '(Slave_IO_Running|Slave_SQL_Running):' | awk -F: 'BEGIN{a=0}{if (($$1 ~ /.*Slave_IO_Running/ && $$2 ~ /Yes.*/) || ($$1 ~ /.*Slave_SQL_Running/ && $$2 ~ /Yes.*/)){a++;}}END{print a;}'
+
