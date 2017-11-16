@@ -1,8 +1,8 @@
 ---
 - hosts: redis
-  gather_facts: no
+  gather_facts: yes
   vars:
-#     redismaster: 172.18.91.222
+     redismaster: 192.168.168.41
      redispass: passhJh220
   roles: 
     - {role: redis}

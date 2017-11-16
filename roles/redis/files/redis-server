@@ -3,7 +3,7 @@
 
 EXEC=/usr/bin/redis-server
 CLIEXEC=/usr/bin/redis-cli
-PIDFILE=/tmp/redis.pid
+PIDFILE=/var/log/redis/redis.pid
 CONF="/etc/redis/redis.conf"
 REDISPORT="6379"
 USER=nobody
@@ -60,7 +60,8 @@ case "$1" in
         fi
         ;;
     status)
-        if [ ! -f $PIDFILE ]
+        PID=$(cat $PIDFILE)
+        if [ ! -x /proc/${PID} ]
         then
             echo 'Redis is not running'
         else

@@ -13,4 +13,4 @@ sentinel auth-pass redis-master {{redispass}}
 #sentinel notification-script redis-master /etc/redis/notify.sh
 #sentinel client-reconfig-script redis-master /etc/redis/failover.sh
 logfile "/var/log/redis/redis-sentinel.log"
-pidfile /tmp/redis-sentinel.pid
+pidfile /var/log/redis/redis-sentinel.pid

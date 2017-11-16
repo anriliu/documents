@@ -3,7 +3,7 @@
 
 EXEC=/usr/bin/redis-sentinel
 CLIEXEC=/usr/bin/redis-cli
-PIDFILE=/tmp/redis-sentinel.pid
+PIDFILE=/var/log/redis/redis-sentinel.pid
 CONF="/etc/redis/sentinel.conf"
 REDISPORT="26379"
 USER=nobody
