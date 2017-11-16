@@ -1,0 +1,14 @@
+[Unit]
+Description=Sentinel for Redis In-Memory Data Store
+After=network.target
+ 
+[Service]
+User=nobody
+Group=nobody
+Type=forking
+ExecStart=/usr/bin/redis-sentinel /etc/redis/sentinel.conf
+ExecStop=/bin/kill -SIGTERM $MAINPID
+Restart=on-failure
+ 
+[Install]
+WantedBy=multi-user.target
