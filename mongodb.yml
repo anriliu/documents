@@ -2,7 +2,10 @@
 - hosts: mongodb
   gather_facts: no
   vars:
-     MONMN: yes
+#     MONMN:
+#       user: zabbix
+#       passwd: monitirng12ss
+#       db: zabbix
 #     MONGO_new:
 #         user: hrxznfw
 #         db:

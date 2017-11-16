@@ -24,8 +24,14 @@
   when: MONGO_new is defined
   ignore_errors: yes
 - name: add mongodb user for monitoring
-  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database=zabbix name=zabbix password=zabbix32112 roles=dbOwner state=present
+  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database={{MONMN.db}} name={{MONMN.user}} password={{MONMN.passwd}} roles=dbOwner state=present
   ignore_errors: yes
+  when: MONMN is defined
+- name: add  zabbix UserParameter for mongodb monitoring
+  lineinfile:
+     path:  /etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf
+     regexp: 'mongorole'
+     line: 'UserParameter=mongorole,mongo -authenticationDatabase {{MONMN.db}} -u{{MONMN.user}} -p{{MONMN.passwd}} -eval "db.isMaster()"|grep ismaster|grep true >>/dev/null&&echo 1||echo 0'
   when: MONMN is defined
 - name: enable auth
   replace:
