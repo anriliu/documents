@@ -20,6 +20,10 @@ The modifications stashed away by this command can be listed with git stash list
 
 customhooks中会设置 $GIT_DIR变量，如果要再非当前repo执行命令，需要unset $GIT_DIR
 
+只下载单个branch或者tag的文件而不是整个仓库
+git clone -b <tag_name> --single-branch <repo_url> [<dest_dir>] 
+
+加上--depth 1 就可以只下载最新的文件，而不保留历史修改记录
 
 
 
