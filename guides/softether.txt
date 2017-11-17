@@ -13,3 +13,7 @@ brctl show
 
 
 softether client 连接服务器后只能运行这个session的ip address tables中保存4个IP，要想突破限制可以设置virtual extended option中NoIptable为1
+
+
+如果server所listening的端口不能被客户端直接连接，那么会尝试通过NAT用udp的方式连接，这样就不需要在防火墙上做任何端口暴露,但同时也就失去了使用多个tcp连接加速的功能，你可以在server的配置中设置DisableNatTraversal true或者在客户端配置server的IP后面加上/tcp来关闭使用nat.
+Softether VPN is using UDP hole punching for NAT-T and requires a full-cone NAT.

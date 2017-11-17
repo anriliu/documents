@@ -25,7 +25,7 @@
   loop_control:
      label: "{{item.VIP}}"
 
-- name: authorize security grp by TCP ports
+- name: authorize security grp
   shell: 'aliyuncli ecs AuthorizeSecurityGroup --IpProtocol {{item.1[0]}} --PortRange {{item.1[1]}}  --SecurityGroupId {{item.0.stdout}}  --SourceCidrIp {{item.1[2]}}'
   with_subelements: 
       - "{{security_groups.results}}"

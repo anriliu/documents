@@ -13,18 +13,18 @@
   with_items:
      - make
      - gcc
-- stat: path=/opt/redis-stable
+- stat: path=/opt/redis-3.2.11
   register: redis_src
-- name: download redis src file
+- name: download redis 3.2.11 src file
   unarchive:
-    src: http://download.redis.io/redis-stable.tar.gz
+    src: http://download.redis.io/releases/redis-3.2.11.tar.gz
     dest: /opt/
     remote_src: True
   when: "redis_src.stat.exists == False"
 - name: compile and install latest redis
   shell: "{{ item }}"
   args: 
-    chdir: /opt/redis-stable
+    chdir: /opt/redis-3.2.11
   with_items:
     - make distclean
     - make  
@@ -50,7 +50,7 @@
      path:  /etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf
      regexp: 'redisrole'
      line: "UserParameter=redisrole,redis-cli -a {{redispass}} info replication|grep 'role:master' >>/dev/null&&echo 1||echo 0"
-  when: redispass is defined
+  when: redispass is defined and MNREDIS is defined
 - name: copy init script for centos6
   copy: 
     src: "{{ item }}"
