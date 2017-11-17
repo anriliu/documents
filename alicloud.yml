@@ -1,6 +1,7 @@
 ---
 - hosts: localhost
   gather_facts: no
+  connection: local
   vars:
     ec2s:
       - VIP: 172.18.91.153

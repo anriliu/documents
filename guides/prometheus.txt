@@ -1,4 +1,5 @@
 Prometheus can reload its configuration at runtime. If the new configuration is not well-formed, the changes will not be applied. A configuration reload is triggered by sending a SIGHUP to the Prometheus process or sending a HTTP POST request to the /-/reload endpoint.(same to Alertmanager)
+For prometheus 2.0 you can send a POST request http://localhost:9090/api/v2/admin/tsdb/snapshot  for online backup data
 
 JOBS AND INSTANCES
 In Prometheus terms, any individually scraped target is called an instance, usually corresponding to a single process. A collection of instances of the same type (replicated for scalability or reliability) is called a job.
