@@ -154,3 +154,13 @@ zabbix monitor slave status(if the returned value is less than 2 then there is a
 the db user  for zabbbix need  REPLICATION CLIENT,SELECT pprivileges
 UserParameter=mysql.slave,HOME=/var/lib/zabbix mysql -e 'SHOW SLAVE STATUS\G' | egrep '(Slave_IO_Running|Slave_SQL_Running):' | awk -F: 'BEGIN{a=0}{if (($$1 ~ /.*Slave_IO_Running/ && $$2 ~ /Yes.*/) || ($$1 ~ /.*Slave_SQL_Running/ && $$2 ~ /Yes.*/)){a++;}}END{print a;}'
 
+
+有用的命令命令
+统计每秒慢查询数量
+awk '/^# Time/{print $3,$4,c;c=0}/^# User/{c++}' mysql_slow.log
+查看mysql连接状态信息
+mysql -e 'show processlist\G'|grep State:|sort |uniq -c|sort -nr
+当前查询量和正在执行查询的线程数
+mysqladmin ext -i1 |awk '/Queries/{q=$4-qp;qp=$4}/Threads_connected/{tc=$4}/Threads_running/{printf "%5d %5d %5d\n",q,tc,$4}'
+mysqladmin ext -i1 -pPassw0rd |awk '/Queries/{q=$4-qp;qp=$4}/Threads_connected/{tc=$4}/Threads_running/{printf "%5d %5d %5d\n",q,tc,$4 >>"query.log";close("query.log")}'
+上面这些统计的数据都可以通过gnuplot来画图展示
