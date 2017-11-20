@@ -92,14 +92,24 @@ Performance Schema Event Filtering:
 1.Pre-filtering.  This is done by modifying Performance Schema configuration so that only certain types of events are collected from producers, and collected events update only certain consumers. 
 To configure pre-filtering at the producer stage, several tables can be used:
 a.setup_instruments 
-b.setup_objects 
-c.threads
-d.setup_actors 
 To configure pre-filtering at the consumer stage, modify the setup_consumers table,setup_consumers also implicitly affects event production. If a given event will not be sent to any destination (that is, will not be consumed), the Performance Schema does not produce it.
 Modifications to any of these tables affect monitoring immediately, with some exceptions:
 Modifications to some instruments in the setup_instruments table are effective only at server startup; changing them at runtime has no effect. This affects primarily mutexes, conditions, and rwlocks in the server, although there may be other instruments for which this is true. This restriction is lifted as of MySQL 5.7.12.
-Modifications to the setup_actors table affect only foreground threads created subsequent to the modification, not existing threads.
 修改了performance schema配置并不会刷新history tables，你需要等待新的记录覆盖旧的或者 TRUNCATE TABLE to empty the history tables.
+mysql> UPDATE setup_instruments       
+       SET ENABLED = IF(NAME LIKE 'wait/io/file/%', 'NO', 'YES');
+mysql> UPDATE setup_instruments
+       SET ENABLED = CASE WHEN NAME LIKE '%/mysys/%' THEN 'YES' ELSE 'NO' END;
+b.setup_objects 
+这个表可以设置监控特定的表还有存储程序对象（EVENT,FUNCTION,PROCEDURE,TRIGGER）
+For table-related events, the Performance Schema combines the contents of setup_objects with setup_instruments to determine whether to enable instruments and whether to time enabled instruments:
+For stored program objects, the Performance Schema takes the ENABLED and TIMED columns directly from the setup_objects row. There is no combining of values with setup_instruments.
+c.threads
+For foreground threads (resulting from client connections), the initial values of the INSTRUMENTED and HISTORY columns in threads table rows are determined by whether the user account associated with a thread matches any row in the setup_actors table. The values come from the ENABLED and HISTORY columns of the matching setup_actors table row.
+For background threads, there is no associated user. INSTRUMENTED and HISTORY are YES by default and setup_actors is not consulted.
+d.setup_actors 
+Modifications to the setup_actors table affect only foreground threads created subsequent to the modification, not existing threads. To affect existing threads, modify the INSTRUMENTED and HISTORY columns of threads table rows.
+When the Performance Schema checks for a match for each new foreground thread in setup_actors, it tries to find more specific matches first, using the USER and HOST columns (ROLE is unused)
 2.Post-filtering.  This involves the use of WHERE clauses in queries that select information from Performance Schema tables, to specify which of the available events you want to see. Post-filtering is performed on a per-user basis because individual users select which of the available events are of interest.
 
 通过下面的方法可以获取和老版本中show profiles相同sql执行各个阶段消耗时间的信息。Performance Schema 中时间的单位是 picoseconds (trillionths of a second) 万亿分之一秒
