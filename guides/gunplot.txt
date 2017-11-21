@@ -1,0 +1,41 @@
+GnuPlot linux下绘图工具，可以把我们统计的数据用图表来展示
+
+例如我们用ab测试一个网站的结果
+ab -n 500 -c 100 -g ./ab_500_100.dat http://localhost/index.php   
+ab -n 500 -c 200 -g ./ab_500_200.dat  http://localhost/index.php  
+ab -n 500 -c 300 -g ./ab_500_300.dat  http://localhost/index.php  
+参数-g 表示将测试结果导出为一个gnuplot文件 ，三次测试的结果会保存在 ab_500_100.dat，ab_500_200.dat，ab_500_300.dat中.
+然后根据导出的gnuplot文件绘制图表，绘制脚本如下：
+[plain] view plain copy
+# 设定输出图片的格式,这里也可以设置为dump,那么就是直接显示结果不生成图片  
+set terminal png  
+  
+# 设定输出的图片文件名  
+set output "ab_500.png"  
+  
+# 图表的标题  
+set title "ab_500 ab -n 500 -c 100,200,300"  
+  
+# 设定图表的X轴和Y轴缩放比例（相当于调整图片的纵横比例，方形的不好看啊）  
+set size 1,0.7  
+  
+# 设定以Y轴数据为基准绘制栅格（就是示例图表中的横向虚线）  
+set grid y  
+  
+# X轴标题  
+set xlabel "request"  
+  
+# Y轴标题  
+set ylabel "response time (ms)"  
+  
+# 设定plot的数据文件，曲线风格和图例名称，以第九列数据ttime为基准数据绘图  
+plot "ab_500_100.dat" using 9 smooth sbezier with lines title "conc per 100","ab_500_200.dat" using 9 smooth sbezier with lines title "conc per 200","ab_500_300.dat" using 9 smooth sbezier with lines title "conc per 300"  
+
+参数说明：
+set size 1,0.7 缩放比例，前面是X轴，后面是Y轴， (0, 1]的一个浮点数，1为原始值
+using 9 表示用哪一列数据绘图，数字是数据行按照空格或制表符分割的字段数字索引，从1开始
+smooth sbezier plot提供的一些数据填充算法以保证线条平滑度的，包含如下选项：smooth {unique | csplines | acsplines | bezier | sbezier}，更详细解释请参考官方文档
+with lines title "xxx" 这个会再右上角生成一个图例，用于区分什么颜色的线条是哪一项数据
+
+可以将其保存在一个文件里面plot.plt
+然后在运行gnuplot 后load
