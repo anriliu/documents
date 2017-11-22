@@ -6,6 +6,11 @@ expression selects which packets will be dumped. If no expression is given, all 
 
 To access data inside the packet, use the following syntax:
 proto [ expr : size ]
+proto[x:y]          : 过滤从x字节开始的y字节数。比如ip[2:2]过滤出从编号为2的字节开始的两个字节即：Total Length字段（首字节编号为0）
+proto[x:y] & z == 0  : proto[x:y]和z的与操作为0
+proto[x:y] & z !=0  : proto[x:y]和z的与操作不为0
+proto[x:y] & z == z  : proto[x:y]和z的与操作为z
+proto[x:y] == z      : proto[x:y]等于z
 
 Proto is one of ether, fddi, tr, wlan, ppp, slip, link, ip, arp, rarp, tcp, udp, icmp, ip6 or radio
 The byte offset, relative to the indicated protocol layer, is given by expr. Size is optional and indicates the number of bytes in the field of interest; it can be either one, two, or four, and defaults to one
