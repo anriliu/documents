@@ -1,0 +1,81 @@
+
+tcpdump -i eth0 -s 65535 -x -n -q -tttt 'port 3306 and tcp[1] & 7 == 2 and tcp[3] & 7 == 2' 
+
+expression selects which packets will be dumped. If no expression is given, all packets on the net will be dumped. Otherwise, only packets for which expression is `true' will be dumped. For the expression syntax, see http://www.tcpdump.org/manpages/pcap-filter.7.html
+表达式可以当作一个或者多个参数传给tcpdump，多个参数会在解析前通过空格连接，表达式最好是放在单引号中以避免遇到shell的原字符被替换.
+
+To access data inside the packet, use the following syntax:
+proto [ expr : size ]
+
+Proto is one of ether, fddi, tr, wlan, ppp, slip, link, ip, arp, rarp, tcp, udp, icmp, ip6 or radio
+The byte offset, relative to the indicated protocol layer, is given by expr. Size is optional and indicates the number of bytes in the field of interest; it can be either one, two, or four, and defaults to one
+
+下面以tcp数据包为例:
+ 0                            15                              31
+-----------------------------------------------------------------
+|          source port          |       destination port        |
+-----------------------------------------------------------------
+|                        sequence number                        |
+-----------------------------------------------------------------
+|                     acknowledgment number                     |
+-----------------------------------------------------------------
+|  HL   | rsvd  |C|E|U|A|P|R|S|F|        window size            |
+-----------------------------------------------------------------
+|         TCP checksum          |       urgent pointer          |
+-----------------------------------------------------------------
+tcp包头包含20个字节（如果有options那么会多4个字节），第一行开始为0-3字节，第二行4-7字节,expr就对应字节的位置（相当于数组的索引),那么TCP[13]就正好是保存TCP标志的位置.tcp[13] == 2就表示tcp SYN,因为SYN设置为1时,第13个字节的值就为00000010也就是2。
+字节的值也可以做运算比如：tcpdump -i xl0 'tcp[13] & 2 == 2'也就是( ( value of octet 13 ) AND ( 2 ) ) == ( 2 )，第13个字节的值和2做二进制与运算后的值等于2,这样就保证了SYN标志的值必须为1.
+A TCP header usually holds 20 octets of data, unless options are present. The first line of the graph contains octets 0 - 3, the second line shows octets 4 - 7 etc.
+
+
+For example, `ether[0] & 1 != 0' catches all multicast traffic. The expression `ip[0] & 0xf != 5' catches all IPv4 packets with options. The expression `ip[6:2] & 0x1fff = 0' catches only unfragmented IPv4 datagrams and frag zero of fragmented IPv4 datagrams. This check is implicitly applied to the tcp and udp index operations. For instance, tcp[0] always means the first byte of the TCP header, and never means the first byte of an intervening fragment.
+
+Some offsets and field values may be expressed as names rather than as numeric values. The following protocol header field offsets are available: icmptype (ICMP type field), icmp6type (ICMP v6 type field) icmpcode (ICMP code field), icmp6code (ICMP v6 code field), and tcpflags (TCP flags field).
+
+The following ICMP type field values are available: icmp-echoreply, icmp-unreach, icmp-sourcequench, icmp-redirect, icmp-echo, icmp-routeradvert, icmp-routersolicit, icmp-timxceed, icmp-paramprob, icmp-tstamp, icmp-tstampreply, icmp-ireq, icmp-ireqreply, icmp-maskreq, icmp-maskreply.
+
+The following ICMPv6 type fields are available: icmp6-echo, icmp6-echoreply, icmp6-multicastlistenerquery, icmp6-multicastlistenerreportv1, icmp6-multicastlistenerdone, icmp6-routersolicit, icmp6-routeradvert, icmp6-neighborsolicit, icmp6-neighboradvert, icmp6-redirect, icmp6-routerrenum, icmp6-nodeinformationquery, icmp6-nodeinformationresponse, icmp6-ineighbordiscoverysolicit, icmp6-ineighbordiscoveryadvert, icmp6-multicastlistenerreportv2, icmp6-homeagentdiscoveryrequest, icmp6-homeagentdiscoveryreply, icmp6-mobileprefixsolicit, icmp6-mobileprefixadvert, icmp6-certpathsolicit, icmp6-certpathadvert, icmp6-multicastrouteradvert, icmp6-multicastroutersolicit, icmp6-multicastrouterterm.
+
+The following TCP flags field values are available: tcp-fin, tcp-syn, tcp-rst, tcp-push, tcp-ack, tcp-urg, tcp-ece, tcp-cwr.
+
+Primitives may be combined using:
+
+A parenthesized group of primitives and operators.
+Negation (`!' or `not').
+Concatenation (`&&' or `and').
+Alternation (`||' or `or').
+
+To select all packets arriving at or departing from sundown:
+
+host sundown
+To select traffic between helios and either hot or ace:
+
+host helios and \( hot or ace \)
+To select all IP packets between ace and any host except helios:
+
+ip host ace and not helios
+To select all traffic between local hosts and hosts at Berkeley:
+
+net ucb-ether
+To select all ftp traffic through internet gateway snup:
+
+gateway snup and (port ftp or ftp-data)
+To select traffic neither sourced from nor destined for local hosts (if you gateway to one other net, this stuff should never make it onto your local net).
+
+ip and not net localnet
+To select the start and end packets (the SYN and FIN packets) of each TCP conversation that involves a non-local host.
+
+tcp[tcpflags] & (tcp-syn|tcp-fin) != 0 and not src and dst net localnet
+To select all IPv4 HTTP packets to and from port 80, i.e. print only packets that contain data, not, for example, SYN and FIN packets and ACK-only packets. (IPv6 is left as an exercise for the reader.)
+
+tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)
+To select IP packets longer than 576 bytes sent through gateway snup:
+
+gateway snup and ip[2:2] > 576
+To select IP broadcast or multicast packets that were not sent via Ethernet broadcast or multicast:
+
+ether[0] & 1 = 0 and ip[16] >= 224
+To select all ICMP packets that are not echo requests/replies (i.e., not ping packets):
+
+icmp[icmptype] != icmp-echo and icmp[icmptype] != icmp-echoreply
+ 

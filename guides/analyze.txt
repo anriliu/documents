@@ -19,6 +19,7 @@ pstack 16739
 #2 0x00000000004007bb in ha_ha ()
 #3 0x0000000000400a53 in main ()
 从以上信息可以看出，函数调用关系为：main->ha_ha->sleep，因而我们可以找到ha_ha函数进行分析和优化修改。
+strace -cfp pid 统计程序中各种系统调用所占时间比例
 
 
 top+jstack 检查java进程性能消耗点

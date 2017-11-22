@@ -130,3 +130,6 @@ The "via 10.0.0.3" only has an effect on Ethernet networks. Ethernet doesn't kno
 pm2:  Production process manager for Node.JS applications
 nmp install pm2
 pm2 start|list|restart
+
+tcpdump将内存保存在远端机器
+tcpdump -i eth0 -s 65535 -x -n -q -tttt 'port 3306 and tcp[1] & 7 == 2 and tcp[3] & 7 == 2' 2>/dev/null | ssh $REMOTEHOST -- "cat - > $TMP/$TMPfile" &
