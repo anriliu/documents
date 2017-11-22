@@ -1,4 +1,5 @@
-
+应用程序数据在发送到物理网络上之前，将沿着协议栈从上往下依次传递。每层协议都将在上层数据的基础上加上自己的头部信息（有时还包括尾部信息），以实现该层的功能，这个过程就称为封装,帧才是最终在物理网络上传送的字节序列
+应用程序--->tcp/udp--->ip--->数据链路层(ethernet frame/oken ring frame)
 tcpdump -i eth0 -s 65535 -x -n -q -tttt 'port 3306 and tcp[1] & 7 == 2 and tcp[3] & 7 == 2' 
 
 expression selects which packets will be dumped. If no expression is given, all packets on the net will be dumped. Otherwise, only packets for which expression is `true' will be dumped. For the expression syntax, see http://www.tcpdump.org/manpages/pcap-filter.7.html
