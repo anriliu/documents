@@ -23,10 +23,47 @@ The byte offset, relative to the indicated protocol layer, is given by expr. Siz
 -----------------------------------------------------------------
 |         TCP checksum          |       urgent pointer          |
 -----------------------------------------------------------------
+|                            options                            |
+-----------------------------------------------------------------
+|                            data                               |
+-----------------------------------------------------------------
 tcp包头包含20个字节（如果有options那么会多4个字节），第一行开始为0-3字节，第二行4-7字节,expr就对应字节的位置（相当于数组的索引),那么TCP[13]就正好是保存TCP标志的位置.tcp[13] == 2就表示tcp SYN,因为SYN设置为1时,第13个字节的值就为00000010也就是2。
 字节的值也可以做运算比如：tcpdump -i xl0 'tcp[13] & 2 == 2'也就是( ( value of octet 13 ) AND ( 2 ) ) == ( 2 )，第13个字节的值和2做二进制与运算后的值等于2,这样就保证了SYN标志的值必须为1.
-A TCP header usually holds 20 octets of data, unless options are present. The first line of the graph contains octets 0 - 3, the second line shows octets 4 - 7 etc.
 
+UDP数据包:
+ 0                            15                              31
+-----------------------------------------------------------------
+|          source port          |       destination port        |
+-----------------------------------------------------------------
+|          Length               |           checksum            |
+-----------------------------------------------------------------
+|                              data                             |
+-----------------------------------------------------------------
+
+UDP包头只有8个字节
+
+ 
+IP数据包格式:
+    0                   1                   2                   3   
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |Ver= 4 |IHL= 5 |Type of Service|        Total Length = 21      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |      Identification = 111     |Flg=0|   Fragment Offset = 0   |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   Time = 123  |  Protocol = 1 |        header checksum        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                         source address                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                      destination address                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       options                                 |
+   -----------------------------------------------------------------
+   |                        data                                   |
+   +-+-+-+-+-+-+-+-+------------------------------------------------                
+
+IP数据包头通常只有20个字节（如果有options则一个option占4个字节）。
+IP协议是TCP/IP协议族中最为核心的协议。它提供不可靠、无连接的服务，也即依赖其他层的协议进行差错控制。在局域网环境，IP协议往往被封装在以太网帧中传送。而所有的TCP、UDP、ICMP、IGMP数据都被封装在IP数据报中传送。
 
 For example, `ether[0] & 1 != 0' catches all multicast traffic. The expression `ip[0] & 0xf != 5' catches all IPv4 packets with options. The expression `ip[6:2] & 0x1fff = 0' catches only unfragmented IPv4 datagrams and frag zero of fragmented IPv4 datagrams. This check is implicitly applied to the tcp and udp index operations. For instance, tcp[0] always means the first byte of the TCP header, and never means the first byte of an intervening fragment.
 
