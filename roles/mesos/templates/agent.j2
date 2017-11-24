@@ -1,0 +1,13 @@
+{% if MESOS_cluster is defined %}
+MESOS_master={{MESOS_zk}}
+{%else%}
+MESOS_master={{mesos_master}}
+{%endif%}
+MESOS_ip={{ansible_ssh_host}}
+MESOS_work_dir=/var/lib/mesos-slave
+MESOS_quiet=true
+MESOS_log_dir=/var/log/mesos
+MESOS_logging_level=INFO
+MESOS_hostname_lookup=false
+MESOS_containerizers=docker,mesos
+MESOS_resources=cpus(*):2;mem(*):2000

@@ -1,9 +1,12 @@
 ---
-- name: download zookeeper binary file
+- stat: path=/opt/zookeeper-3.4.10
+  register: zookeeper_src
+- name: download zookeeper 3.4.10 binary file
   unarchive:
     src: http://ftp.wayne.edu/apache/zookeeper/stable/zookeeper-3.4.10.tar.gz
     dest: /opt/
     remote_src: True
+  when: "zookeeper_src.stat.exists == False"
 - name: create link for root folder
   file: state=link src=/opt/zookeeper-3.4.10 dest=/opt/zookeeper
 - name: set zookeeper nohub log file path
@@ -11,11 +14,18 @@
      path: /opt/zookeeper/bin/zkEnv.sh 
      insertafter: '^ZOOKEEPER_PREFIX'
      line: ZOO_LOG_DIR="/var/log/zookeeper/"
-- name: copy init script
+- name: copy init script for centos6
   copy: 
     src: zookeeper
     dest: /etc/init.d/zookeeper
     mode: 0755
+  when: ansible_distribution_major_version == "6"
+- name: copy init script for centos7
+  copy:
+    src: zookeeper.service
+    dest: /etc/systemd/system/
+    mode: 0755
+  when: ansible_distribution_major_version == "7"
 - name: create data and log file
   file: state=directory path={{ item }} owner=nobody group=nobody
   with_items:

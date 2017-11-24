@@ -1,0 +1,10 @@
+{% if MESOS_cluster is defined %}
+MESOS_quorum=2
+MESOS_zk={{MESOS_zk}}
+{% endif %}
+MESOS_ip={{ansible_ssh_host}}
+MESOS_work_dir=/var/lib/mesos-master
+MESOS_quiet=true
+MESOS_log_dir=/var/log/mesos
+MESOS_logging_level=INFO
+MESOS_hostname_lookup=false

@@ -1,13 +1,13 @@
 ---
 - hosts: zookeeper
-  gather_facts: no
+  gather_facts: yes
   vars:
     - ZKPS: 
         - ID: 1 
-          IP: 192.168.168.11
+          IP: 192.168.168.41
         - ID: 2
-          IP: 192.168.168.22
+          IP: 192.168.168.42
         - ID: 3 
-          IP: 192.168.168.33
+          IP: 192.168.168.43
   roles: 
     - {role: zookeeper}

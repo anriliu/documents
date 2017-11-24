@@ -1,0 +1,16 @@
+[Unit]
+Description=Mesos Slave
+After=network.target
+Wants=network.target
+
+[Service]
+ExecStart=/usr/sbin/mesos-slave 
+EnvironmentFile=/etc/mesos-agent.env
+KillMode=process
+Restart=always
+RestartSec=20
+CPUAccounting=true
+MemoryAccounting=true
+
+[Install]
+WantedBy=multi-user.target

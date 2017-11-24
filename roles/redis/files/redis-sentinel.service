@@ -9,6 +9,7 @@ Type=forking
 ExecStart=/usr/bin/redis-sentinel /etc/redis/sentinel.conf
 ExecStop=/bin/kill -SIGTERM $MAINPID
 Restart=on-failure
- 
+RestartSec=5 
+
 [Install]
 WantedBy=multi-user.target

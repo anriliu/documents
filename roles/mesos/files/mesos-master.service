@@ -1,0 +1,13 @@
+[Unit]
+Description=Mesos Master
+After=network.target
+Wants=network.target
+
+[Service]
+ExecStart=/usr/sbin/mesos-master
+EnvironmentFile=/etc/mesos-master.env
+Restart=always
+RestartSec=20
+
+[Install]
+WantedBy=multi-user.target

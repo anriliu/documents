@@ -1,0 +1,5 @@
+---
+- name: start mesos-agent
+  service: name=mesos-agent state=restarted enabled=yes daemon-reload=yes
+- name: start mesos-master
+  service: name=mesos-master state=restarted enabled=yes daemon-reload=yes
