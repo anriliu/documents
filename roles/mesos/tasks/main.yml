@@ -13,6 +13,7 @@
 - name: install docker-ce
   yum: name=docker-ce state=present
   when: ansible_distribution_major_version == "7"
+  notify: start docker
 - name: copy init script for centos7
   copy:
     src: mesos-{{mesos_role}}.service
