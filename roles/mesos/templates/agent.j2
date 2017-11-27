@@ -1,4 +1,4 @@
-{% if MESOS_cluster is defined %}
+{% if MESOS_zk is defined %}
 MESOS_master={{MESOS_zk}}
 {%else%}
 MESOS_master={{mesos_master}}
