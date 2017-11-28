@@ -11,8 +11,8 @@
   yum: 
      name: http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-3.noarch.rpm
      state: present
-- name: install mesos-1.4.0
-  yum: name=mesos-1.4.0 state=latest
+- name: install mesos-1.4.1
+  yum: name=mesos-1.4.1 state=latest
 - name: install docker-ce
   yum: name=docker-ce state=present
   when: ansible_distribution_major_version == "7"
