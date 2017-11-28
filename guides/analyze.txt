@@ -94,3 +94,10 @@ perf-lock
 perf-kmemo
 Tool to trace/measure kernel memory(slab) properties.
 slab分配器的性能分析.
+
+
+使用 iostat 从系统纬度查看磁盘 IO 负载
+iostat -d -k 2# -d 表示，显示设备（磁盘）使用状态。# -k 表示让某些使用 block 为单位的列强制使用 kB 为单位。# 2表示，数据显示每隔2秒刷新一次
+
+使用 iotop 从进程纬度查看磁盘 IO 负载
+

@@ -49,6 +49,8 @@ find -not -path "./com/ozstrategy/*' -not -path "./com/cmc/*" -type f
 This command copies the contents of /source-dir to /dest-dir, but omits files and directories named .snapshot (and anything in them).  It also omits files or directories whose name ends in ~, but not their contents.  The construct -prune -o \( ... -print0 \) is quite common.  The idea here is that the expression before -prune  matches  things  which are  to  be  pruned.  However, the -prune action itself returns true, so the following -o ensures that the right hand side is evaluated only for those directories which didn't get pruned 
 下面的命令找出并复制当前目录中所有非名为.snapshot，以及名字不是已～结束的文件和目录到dest-dir
 find . -name .snapshot -prune -o \( \! -name *~ -print0 \)|   cpio -pmd0 /dest-dir
+find . -inum id -exec rm {} -rf \;	#通过innode删除文件
+rm -- -test #删除-开头文件
 
 设置一个文件的修改时间为epoch，On GNU and POSIX systems,the epoch is 1970-01-01 00:00:00 UTC, so '@0' represents this time，'@1' represents 1970-01-01 00:00:01 UTC
 touch -d "@0" file
@@ -133,3 +135,7 @@ pm2 start|list|restart
 
 tcpdump将内存保存在远端机器
 tcpdump -i eth0 -s 65535 -x -n -q -tttt 'port 3306 and tcp[1] & 7 == 2 and tcp[3] & 7 == 2' 2>/dev/null | ssh $REMOTEHOST -- "cat - > $TMP/$TMPfile" &
+
+#记录用户登录后操作记录
+echo '/usr/bin/script -qaf /root/$USER-$UIDO-`date +%Y%m%d%H%M`.log' >>/root/.bash_profile
+

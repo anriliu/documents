@@ -122,3 +122,10 @@ To select all ICMP packets that are not echo requests/replies (i.e., not ping pa
 
 icmp[icmptype] != icmp-echo and icmp[icmptype] != icmp-echoreply
  
+
+
+Linux 中有各种查看网卡流量的工具，比如 sar、iftop、nethogs
+sar 可以从网络接口层面来分析数据包的收发情况、错误信息等。 
+sar -n DEV [interval] [count]  参数 interval 是统计间隔，count 是统计次数。
+iftop [-i interface]参数 -i 后跟的 interface 表示网络接口名，比如 eth0、eth1 等等。如果不通过 -i 参数指定接口名，则默认检测第一块网卡的使用情况，对于 ECS,通常为内网网卡 eth0,显示的是IP和端口的流量
+Nethogs 是一款开源的网络流量监控工具，可用于显示每个进程的带宽占用情况。这样可以更直观定位异常流量的来源。Nethogs 支持 IPv4 和 IPv6协议，支持本地网卡及 PPP 连接。
