@@ -1,4 +1,7 @@
 ---
+- name: end tasks if it's not centos7
+  fail: msg='ensure you are running this on centos7 system'
+  when: ansible_distribution_major_version != "7"
 - name: 
   get_url:
       url: https://download.docker.com/linux/centos/docker-ce.repo
@@ -6,10 +9,10 @@
   when: ansible_distribution_major_version == "7"
 - name: install mesos repository
   yum: 
-     name: http://repos.mesosphere.com/el/{{ansible_distribution_major_version}}/noarch/RPMS/mesosphere-el-repo-{{ansible_distribution_major_version}}-3.noarch.rpm
+     name: http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-3.noarch.rpm
      state: present
-- name: install mesos-1.3.0-2.0.3
-  yum: name=mesos-1.3.0-2.0.3 state=present
+- name: install mesos-1.4.0
+  yum: name=mesos-1.4.0 state=latest
 - name: install docker-ce
   yum: name=docker-ce state=present
   when: ansible_distribution_major_version == "7"

@@ -56,6 +56,6 @@
 #172.18.91.152
 #172.18.91.153
 [mesos]
-192.168.168.41 mesos_role=master
-192.168.168.42 mesos_role=agent
-192.168.168.43 mesos_role=agent
+#172.18.91.139 mesos_role=master
+#172.18.123.52 mesos_role=agent
+#172.18.91.142 mesos_role=agent
