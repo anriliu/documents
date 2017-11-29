@@ -111,7 +111,36 @@ db.dropDatabase();
 comment out configuration file about if you have replication configuration
 systemctl restart mongod 
 
-mongodumi以bson格式备份数据库或者collections,备份后的文件可以通过mongorestore来恢复：
+
+The oplog (operations log) is a special capped collection that keeps a rolling record of all operations that modify the data stored in your databases. MongoDB applies database operations on the primary and then records the operations on the primary’s oplog. The secondary members then copy and apply these operations in an asynchronous process. All replica set members contain a copy of the oplog, in the local.oplog.rs collection, which allows them to maintain the current state of the database.
+replication set的oplog相当于是mysql的binlog,里面记录了所有primary数据库的操作，并且具有幂等性，secondary通过复制和应用这些日志到自身数据库来达到同步的效果，每个replica set members都有一份oplog存在local.oplog.rs collection,oplog有大小限制，默认是5%的剩余空间,也就是说opelog只能保存一段时间的，所以当secondary离开集群时间过长，而primary上保存的oplog已经不能完全保证同步时，secondary再次启动就不能自动再加入集群了而变为stale状态。
+变为stale状态的node必须要全部重新同步一次数据才能重新加入集群，相当于是新加入member到集群，有两种方式：
+1.停止mongodb,删除dbPath文件，启动mongodb，这样会从primary全部同步数据，花费时间比较多。
+2.从另外一个memebers拷贝dbPath文件，在这个过程中需要保证数据源的mongodb没有在运行,启动mongodb.(切记不能用mongodump备份数据，这种方式也适合添加新的memeber,只需在primary member再执行rs.add)
+
+mongooplog 可以用来在线从远端pull oplog来应用到指定机器，默认只会pull过去24小时的oplog，可以通过--seconds指定时间:
+mongooplog  --from mongodb0.example.net --host momgodb.local --seconds 86400
+
+
+查看replication状态:
+rs.printSlaveReplicationInfo()
+查看Oplog的大小
+rs.printReplicationInfo()
+
+replSet error fatal couldn't query the local local.oplog.rs collection.  Terminating mongod after 30 seconds.
+<timestamp> [rsStart] bad replSet oplog entry?
+
+db = db.getSiblingDB("local")
+db.oplog.rs.find().sort({$natural:-1}).limit(1)
+db.oplog.rs.find({ts:{$type:17}}).sort({$natural:-1}).limit(1)
+The first query returns the last document in the oplog, while the second returns the last document in the oplog where the ts value is a Timestamp. The $type operator allows you to select BSON type 17, is the Timestamp data type.
+If the queries don’t return the same document, then the last document in the oplog has the wrong data type in the ts field.
+To set the proper type for this value and resolve this issue, use an update operation that resembles the following:
+db.oplog.rs.update( { ts: { t:1347982456000, i:1 } },
+                    { $set: { ts: new Timestamp(1347982456000, 1)}})
+
+
+mongodump以bson格式备份数据库或者collections,备份后的文件可以通过mongorestore来恢复：
 mongodump  --db test
 mongodump  --db test --collection collection
 mongodump --host mongodb1.example.net --port 37017 --username user --password pass --out /opt/backup/mongodump-2011-10-24
@@ -133,3 +162,19 @@ mongoexport -d test -c records -q "{ a: { \$gte: 3 } }" --out exportdir/myRecord
 mongoimport --db users --collection contacts --type csv --headerline --file /opt/backups/contacts.csv
 如果没有指定-c 那么会以文件名为collectoin name
 mongoimport --db users --type csv --headerline --file /opt/backups/contacts.csv
+
+db.collectoin_name.find()来查询指定collectoin中所有的数据
+
+mongodb-consistent-backup 可以用来备份并自动压缩，并支持多种方式上传，内部是用mongodbdump实现，所备份文件可以用mongorestore还原
+mongodb-consistent-backup -H mongos1.example.com -P 27018 -u mongodb-consistent-backup -p s3cr3t -n prodwebsite -l /var/lib/mongodb-consistent-backup
+mongorestore --host mongod12.example.com --port 27017 -u admin -p 123456 --oplogReplay --dir /var/lib/mongodb-consistent-backup/default/20170424_0000/rs0/dump
+用户需要如下权限:
+db.getSiblingDB("admin").createUser({
+        user: "mongodbbackup",
+        pwd: "PASSWORD-HERE",
+        roles: [
+                { role: "backup", db: "admin" },
+                { role: "clusterMonitor", db: "admin" }
+        ]
+})
+

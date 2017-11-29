@@ -164,3 +164,6 @@ mysql -e 'show processlist\G'|grep State:|sort |uniq -c|sort -nr
 mysqladmin ext -i1 |awk '/Queries/{q=$4-qp;qp=$4}/Threads_connected/{tc=$4}/Threads_running/{printf "%5d %5d %5d\n",q,tc,$4}'
 mysqladmin ext -i1 -pPassw0rd |awk '/Queries/{q=$4-qp;qp=$4}/Threads_connected/{tc=$4}/Threads_running/{printf "%5d %5d %5d\n",q,tc,$4 >>"query.log";close("query.log")}'
 上面这些统计的数据都可以通过gnuplot来画图展示
+
+Grant也可以使用_和%通配符可以只用\转义：
+GRANT ... ON `foo_%`.* TO

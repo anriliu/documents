@@ -237,3 +237,7 @@ case "$1" in
  echo $"Usage: $0 {full|increase}"
  exit 2  
 esac
+
+the databackup user needs below privileges;
+grant  SELECT on *.* to databackup@'localhost' identified by 'aaaaaxxx';
+grant  REPLICATION CLIENT,RELOAD on *.* to databackup@'localhost';
