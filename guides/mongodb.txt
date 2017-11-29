@@ -121,6 +121,12 @@ replication set的oplog相当于是mysql的binlog,里面记录了所有primary�
 mongooplog 可以用来在线从远端pull oplog来应用到指定机器，默认只会pull过去24小时的oplog，可以通过--seconds指定时间:
 mongooplog  --from mongodb0.example.net --host momgodb.local --seconds 86400
 
+如果想在已有的备份上面追加新的记录，可以使用下面的方法：
+1.mongodump -d local -c oplog.rs -oplog -o oplogD  #在primary备份oplog.rs collection
+2.mongorestore -h host --port NNNN --oplogReplay --oplogLimit 1361497305:2789 oplogD  #在备份的collection上apply到指定timestamp的oplog
+可以在primary的local db中通过db.oplog.rs.find()查找
+
+
 
 查看replication状态:
 rs.printSlaveReplicationInfo()
