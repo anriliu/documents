@@ -1,0 +1,20 @@
+---
+- name: create mysql backup folder
+  file: path=~{{ansible_user}}/mysqlbackup state=directory 
+- name: add mysql backup user
+  mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name={{item.0.user}} password={{item.0.passwd}} priv="{{ item.0.privs | join('/') }}" host={{item.1}} state=present
+  with_subelements:
+      - "{{MYSQLUSERS}}"
+      - hosts
+  when: "MYSQLUSERS is defined"
+- name: generate backup script
+  template: src=mysqlbackup.sh.j2 dest=~{{ansible_user}}/mysqlbackup.sh mode=0777
+  when: "MYSQLUSERS is defined"
+- cron:
+    name: mysqlbackup job 
+    minute: 0
+    hour: 01
+    user: root
+    job: "~{{ansible_user}}/mysqlbackup.sh >>/dev/null 2>&1"
+    cron_file:  /etc/crontab
+  when: "MYSQLUSERS is defined"

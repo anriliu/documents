@@ -1,0 +1,15 @@
+---
+- hosts: mysqlbackup
+  gather_facts: yes
+  vars:
+     MYSQLUSERS:
+         - user: dbbackup
+           passwd: monitoring3445
+           hosts:
+            - 'localhost'
+           privs:
+            - "*.*:REPLICATION CLIENT,RELOAD"
+            - "test%.*:SELECT"
+     MYSQL_rootpwd: xdYt2ddd21o90
+  roles: 
+    - {role: mysqlbackup}
