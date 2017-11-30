@@ -3,7 +3,7 @@
   gather_facts: yes
   vars:
      ansible_user: root
-     MYSQLUSERS:
+     MYSQL_backup:
          - user: dbbackup
            passwd: monitoring3445
            hosts:
@@ -12,5 +12,6 @@
             - "*.*:REPLICATION CLIENT,RELOAD"
             - "test%.*:SELECT"
      MYSQL_rootpwd: xdYt2ddd21o90
+     keep_days: 7
   roles: 
     - {role: mysqlbackup}

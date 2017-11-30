@@ -1,0 +1,17 @@
+#!/bin/bash
+#set -x
+cd /home/mongobackup
+DAY=$(date +%Y%m%d)
+
+#pull full backup
+fullbackup_{{project}}(){
+scp -i /opt/hzx/pro/{{ansible_user}}.pem  -r {{ansible_user}}@{{ inventory_hostname }}:/opt/mongodb-consistent-backup/{{project}}/$DAY* /home/mongobackup/{{project}}/
+if [[ $? -eq 0 ]];then
+  touch /tmp/{{project}}mongobackup_ok
+else
+  rm -rf /tmp/{{project}}mongobackup_ok
+fi
+find  /home/mongobackup/{{project}}/ -maxdepth 1 -mindepth 1 -type d -mtime +{{keep_days}} -exec rm -rf {} \;
+}
+
+fullbackup_{{project}}

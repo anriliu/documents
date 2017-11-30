@@ -1,0 +1,14 @@
+---
+- hosts: mongobackup
+  gather_facts: no
+  vars:
+     MONGO_backup:
+         user: z11
+         passwd: Jst&shwj123
+     DBLOGIN:
+         user: admin
+         db: admin
+         passwd: ad112#112
+     keep_days: 7
+  roles: 
+    - {role: mongobackup}

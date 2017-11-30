@@ -1,0 +1,88 @@
+production:
+  host: localhost
+  port: 27017
+  username: {{MONGO_backup.user}}
+  password: {{MONGO_backup.passwd}}
+  #authdb: [auth database]   (default: admin)
+  #ssl:
+  #  enabled: [true|false]  (default: false)
+  #  insecure: [true|false] (default: false)
+  #  ca_file: [path]
+  #  crl_file: [path]
+  #  client_cert_file: [path]
+  log_dir: /var/log/mongodb-consistent-backup
+  backup:
+    method: mongodump
+    name: {{project}}
+    location: /opt/mongodb-consistent-backup
+  #  mongodump:
+  #    binary: [path]                (default: /usr/bin/mongodump)
+  #    compression: [auto|none|gzip] (default: auto - enable gzip if supported)
+  rotate:
+  #  max_backups: [1+]
+    max_days: {{keep_days}}
+  #    threads: [1-16]               (default: auto-generated, shards/cpu)
+  #replication:
+  #  max_lag_secs: [1+]                        (default: 10)
+  #  min_priority: [0-999]                     (default: 0)
+  #  max_priority: [2-1000]                    (default: 1000)
+  #  hidden_only: [true|false]                 (default: false)
+  #  read_pref_tags: [key:value,key:value,...] (default: none)
+  #sharding:
+  #  balancer:
+  #    wait_secs: [1+] (default: 300)
+  #    ping_secs: [1+] (default: 3)
+  #oplog:
+  #  compression: [none|gzip] (default: gzip, if used by backup stage)
+  #  flush:
+  #    max_docs: [1+] (default: 100)
+  #    max_secs: [1+] (default: 1)
+  #  resolver:
+  #    threads: [1+]  (default: 2 per CPU)
+  #  tailer:
+  #    enabled: true
+  #    status_interval: 30
+  archive:
+    method: tar
+  #  tar:
+  #    compression: [none|gzip] (default: gzip, none if backup already compressed)
+  #    threads: [1+]            (default: 1 per CPU)
+  #  zbackup:
+  #    binary: [path]        (default: /usr/bin/zbackup)
+  #    cache_mb: [mb]        (default: 128)
+  #    compression: [lzma]   (only lzma is supported)
+  #    password_file: [path] (default: none)
+  #    threads: [1+]         (default: 1 per CPU)
+  notify:
+    method: none
+  #  nsca:
+  #    server: [host:port] (default: localhost:5667)
+  #    password: [password]
+  #    check_host: [nagios host]
+  #    check_name: [nagios check name]
+  upload:
+    method: none
+  #  remove_uploaded: [true|false] (default: false)
+  #  retries: [1+]           (default: 5)
+  #  threads: [1+]           (default: 4)
+  #  gs:
+  #    project_id: [Google Cloud Project ID]
+  #    access_key: [Google Cloud Storage Interoperability API Access Key]
+  #    secret_key: [Google Cloud Storage Interoperability API Secret Key]
+  #    bucket_name: [Google Cloud Storage Bucket Name]
+  #    bucket_prefix: [prefix] (default: /)
+  #  rsync:
+  #    path: [Rsync Destination Path]
+  #    user: [SSH Username]
+  #    host: [SSH Hostname/IP]
+  #    port: [SSH Port Number] (default: 22)
+  #    delete: [true|false]    (default: false)
+  #  s3:
+  #    region: [AWS S3 Region] (default: us-east-1)
+  #    access_key: [AWS S3 Access Key]
+  #    secret_key: [AWS S3 Secret Key]
+  #    bucket_name: [AWS S3 Bucket Name]
+  #    bucket_prefix: [prefix] (default: /)
+  #    chunk_size_mb: [1+]     (default: 50)
+  #    secure: [true|false]    (default: true)
+  #    acl: [acl_str]          (default: none)

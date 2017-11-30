@@ -1,0 +1,28 @@
+---
+- name: install mongodb server
+  yum: name={{item}} state=present
+  with_items:
+     - rsync
+     - https://github.com/Percona-Lab/mongodb_consistent_backup/releases/download/1.2.0/mongodb_consistent_backup-1.2.0-1.el7.centos.x86_64.rpm
+- name: add mongodb user for backup
+  mongodb_user: login_database={{DBLOGIN.db}} login_password={{DBLOGIN.passwd}}  login_user={{DBLOGIN.user}} database=admin name={{MONGO_backup.user}} password={{MONGO_backup.passwd}} roles='backup,clusterMonitor' state=present
+- name: change mongodb_consistent_backup configuration file
+  template: src=mongodb-consistent-backup.conf.j2  dest=/etc/mongodb-consistent-backup.conf
+- name: add mongodb backup crontab
+  lineinfile: 
+     path: /etc/cron.d/mongodb-consistent-backup
+     line: '0 1 * * *       root    /usr/bin/mongodb-consistent-backup --config=/etc/mongodb-consistent-backup.conf >/dev/null 2>&1'
+- block:
+  - name: create backup folder
+    file: path=/home/mongobackup/{{project}} state=directory 
+  - name: copy over pull backup script
+    template: src=pullbackup.sh.j2 dest=/home/mongobackup/pull_{{project}}_mongobackup.sh mode=0777
+  - name: setup crontab to pull backup from remote
+    cron: 
+      name: pull {{project}}  mongodb backup job
+      minute: 0
+      hour: 02
+      user: root
+      job: "/home/mongobackup/pull_{{project}}_mongobackup.sh >>/home/mongobackup/pull_{{project}}.error 2>&1"
+      cron_file:  /etc/crontab
+  delegate_to: localhost

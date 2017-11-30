@@ -5,7 +5,7 @@
 - name: add mysql backup user
   mysql_user: login_user=root login_password={{MYSQL_rootpwd}} name={{item.0.user}} password={{item.0.passwd}} priv="{{ item.0.privs | join('/') }}" host={{item.1}} state=present
   with_subelements:
-      - "{{MYSQLUSERS}}"
+      - "{{MYSQL_backup}}"
       - hosts
 - name: generate backup script
   template: src=mysqlbackup.sh.j2 dest=~{{ansible_user}}/mysqlbackup.sh mode=0777
@@ -20,14 +20,14 @@
   - name: create backup folder
     file: path=/home/mysqlbackup/{{project}} state=directory 
   - name: copy over pull backup script
-    template: src=pullbackup.sh.j2 dest=/home/mysqlbackup/pull_{{project}}_backup.sh mode=0777
+    template: src=pullbackup.sh.j2 dest=/home/mysqlbackup/pull_{{project}}_mysqlbackup.sh mode=0777
   - name: setup crontab to pull backup from remote
     cron: 
       name: pull {{project}}  mysql backup job
       minute: 0
       hour: 02
       user: root
-      job: "/home/mysqlbackup/pull_{{project}}_backup.sh >>/dev/null 2>&1"
+      job: "/home/mysqlbackup/pull_{{project}}_mysqlbackup.sh >>/dev/null 2>&1"
       cron_file:  /etc/crontab
 #  - debug: var=inventory_hostname
 #  - debug: var=ansible_hostname

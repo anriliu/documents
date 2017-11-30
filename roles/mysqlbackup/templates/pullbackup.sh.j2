@@ -15,7 +15,7 @@ fi
 rsync -a --delete -e 'ssh -i /opt/hzx/pro/{{ansible_user}}.pem' {{ansible_user}}@{{ inventory_hostname }}:{{binlog_path}} /home/mysqlbackup/{{project}}/
 cd /home/mysqlbackup/{{project}}/
 tar -czf binlog_$DAY.tar.gz {{binlog_path.split('/')[-1]}}
-find /home/mysqlbackup/{{project}}/ -maxdepth 1 -type f -mtime +7 -exec rm -rf {} \;
+find /home/mysqlbackup/{{project}}/ -maxdepth 1 -type f -mtime +{{keep_days}} -exec rm -rf {} \;
 }
 
 fullbackup_{{project}}
