@@ -2,6 +2,7 @@
 - hosts: mysqlbackup
   gather_facts: yes
   vars:
+     ansible_user: root
      MYSQLUSERS:
          - user: dbbackup
            passwd: monitoring3445

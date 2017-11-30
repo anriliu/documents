@@ -6,10 +6,8 @@
   with_subelements:
       - "{{MYSQLUSERS}}"
       - hosts
-  when: "MYSQLUSERS is defined"
 - name: generate backup script
   template: src=mysqlbackup.sh.j2 dest=~{{ansible_user}}/mysqlbackup.sh mode=0777
-  when: "MYSQLUSERS is defined"
 - cron:
     name: mysqlbackup job 
     minute: 0
@@ -17,4 +15,20 @@
     user: root
     job: "~{{ansible_user}}/mysqlbackup.sh >>/dev/null 2>&1"
     cron_file:  /etc/crontab
-  when: "MYSQLUSERS is defined"
+- block:
+  - name: create backup folder
+    file: path=/home/mysqlbackup/{{project}} state=directory 
+  - name: copy over pull backup script
+    template: src=pullbackup.sh.j2 dest=/home/mysqlbackup/pull_{{project}}_backup.sh mode=0777
+  - name: setup crontab to pull backup from remote
+    cron: 
+      name: pull {{project}}  mysql backup job
+      minute: 0
+      hour: 02
+      user: root
+      job: "/home/mysqlbackup/pull_{{project}}_backup.sh >>/dev/null 2>&1"
+      cron_file:  /etc/crontab
+#  - debug: var=inventory_hostname
+#  - debug: var=ansible_hostname
+#  - debug: var=ansible_host
+  delegate_to: localhost

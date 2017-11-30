@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#set -x
+cd /home/mysqlbackup
+DAY=$(date +%Y%m%d)
+
+#pull full backup
+fullbackup_{{project}}(){
+scp -i /opt/hzx/pro/{{ansible_user}}.pem {{ansible_user}}@{{ inventory_hostname }}:~{{ansible_user}}/mysqlbackup/{{project}}_$DAY* /home/mysqlbackup/{{project}}
+if [[ $? -eq 0 ]];then
+  touch /tmp/{{project}}mysqlbackup_ok
+else
+  rm -rf /tmp/{{project}}mysqlbackup_ok
+fi
+rsync -a --delete -e 'ssh -i /opt/hzx/pro/{{ansible_user}}.pem' {{ansible_user}}@{{ inventory_hostname }}:{{binlog_path}} /home/mysqlbackup/{{project}}/
+cd /home/mysqlbackup/{{project}}/
+tar -czf binlog_$DAY.tar.gz {{binlog_path.split('/')[-1]}}
+find /home/mysqlbackup/{{project}}/ -maxdepth 1 -type f -mtime +7 -exec rm -rf {} \;
+}
+
+fullbackup_{{project}}

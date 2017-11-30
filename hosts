@@ -50,7 +50,8 @@
 #172.18.91.149 mysql_slave=true
 #192.168.168.41
 [mysqlbackup]
-192.168.168.41
+192.168.168.41 project=hgg binlog_path=/var/log/mysqlbin
+#192.168.168.43 project=gooo binlog_oath=/var/log/mysqlbin
 [nodejs]
 #192.168.168.41
 [java]

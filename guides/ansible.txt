@@ -27,6 +27,10 @@ A frequently used idiom is walking a group to find all IP addresses in that grou
 {% endfor %}
 
 inventory_hostname is the name of the hostname as configured in Ansible’s inventory host file. This can be useful for when you don’t want to rely on the discovered hostname ansible_hostname or for other mysterious reasons. If you have a long FQDN, inventory_hostname_short also contains the part up to the first period, without the rest of the domain.
+inventory_hostname is a magic variable that indicates the current host you are looping over in the host loop.
+
+ansible_host is the host the tasks is finally running on
+ansible_hostname  is discovered by ansible. Ansible sshs into the host and gathers some facts. As part of the fact, it also discovers its hostname which is stored in ansible_hostname.
 
 Ansible 2.0 has deprecated the “ssh” from ansible_ssh_user, ansible_ssh_host, and ansible_ssh_port to become ansible_user, ansible_host, and ansible_port. 
 

@@ -1,11 +1,11 @@
 #!/bin/bash
 HOUR=$(date +%Y%m%d%H)
-mysqldump -udatabackup -p'12E!TAu)3A#'   --skip-lock-tables --single-transaction  --master-data=2 --all-databases  --add-drop-database > ~{{ansible_ssh_user}}/mysqlbackup/hzx_$HOUR.sql
+mysqldump -u{{MYSQLUSERS[0].user}} -p{{MYSQLUSERS[0].passwd}}   --skip-lock-tables --single-transaction  --master-data=2 --all-databases  --add-drop-database > ~{{ansible_ssh_user}}/mysqlbackup/{{project}}_$HOUR.sql
 if [[ $? -eq 0 ]];then
 cd ~{{ansible_ssh_user}}
-gzip ~{{ansible_ssh_user}}/mysqlbackup/hzx_$HOUR.sql
+gzip ~{{ansible_ssh_user}}/mysqlbackup/{{project}}_$HOUR.sql
 else
-rm -rf ~{{ansible_ssh_user}}/mysqlbackup/hzx_$HOUR.sql
+rm -rf ~{{ansible_ssh_user}}/mysqlbackup/{{project}}_$HOUR.sql
 fi
 
 find ~{{ansible_ssh_user}}/mysqlbackup/ -type f -mtime +7 -exec rm -rf {} \;
