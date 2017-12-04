@@ -126,6 +126,16 @@ mongooplog  --from mongodb0.example.net --host momgodb.local --seconds 86400
 2.mongorestore -h host --port NNNN --oplogReplay --oplogLimit 1361497305:2789 oplogD  #在备份的collection上apply到指定timestamp的oplog
 可以在primary的local db中通过db.oplog.rs.find()查找
 
+opslog中ts的格式是$timestamp":{"t":1510307538,"i":107} ，t的值是epoch 到现在的时间可用date -d "@1510307538"转换成可读时间格式，也可以用date +'%s' -d'20171204 10:10:43'来转换可读时间格式到epoch 格式.i表示在这一秒内的操作次数
+如果要想在mongodb中还原到特定的时间，那么必须满足一下几个条件：
+1.开启replication
+2.拥有定时的完整数据备份。mongodump --oplog --gzip --authenticationDatabase=admin -umongodbbackup -pP  mysqldump默认不会备份local 数据库
+3.拥有oplog备份,在local中的oplog.rs collection,mongodump -d local -c oplog.rs -oplog -o oplogD --authenticationDatabase=admin -u -p
+4.oplog备份中包含了完整备份后的所有操作，并且想要恢复的时间是在完整备份时间点之后(这就要求oplog size要足够大，否则就需要加快备份的频率)
+
+当在本地恢复了完整备份后，如果你能知道是具体需要恢复到哪条语句,那么可以通过bsondump --type=json oplogD/local/oplog.rs.bson来找出具体的ts,也可以通过对比bsondump来对比备份的bson文件中最后的操作是否存在与oplog中，通过在oplog中查找备份collection的bson文件中最后一条记录的$oid是否存在来判断，也可以通过rs.printReplicationInfo()来查看oplog first event time来判断。
+当确定你需要恢复的时间之后就执行：
+mongorestore --host localhost --port 27017 --oplogReplay –oplogLimit 121232323:12 --dir ./oplogD
 
 
 查看replication状态:
