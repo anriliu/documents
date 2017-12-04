@@ -8,3 +8,22 @@ set -u      Treat unset variables and parameters other than the special paramete
 
 set  --   If no arguments follow this option, then the positional parameters are unset.  Otherwise, the positional parameters are set to the args, even if  some  of  them  begin with a -.
 set  -   Signal  the  end of options, cause all remaining args to be assigned to the positional parameters.  The -x and -v options are turned off.  If there are no args the positional parameters remain unchanged.
+
+
+Bash Extended Globbing:
+bash中除了*，?和[]路径扩展之外还有下面这些额外的扩展在shopt -s extglob开始时生效:
+  ?(pattern-list)   Matches zero or one occurrence of the given patterns
+  *(pattern-list)   Matches zero or more occurrences of the given patterns
+  +(pattern-list)   Matches one or more occurrences of the given patterns
+  @(pattern-list)   Matches one of the given patterns
+  !(pattern-list)   Matches anything except one of the given patterns
+
+pipeline：
+ command [ [|⎪|&] command2 ... ]
+The standard output of command is connected via a pipe to the standard input of command2.  This connection is  performed  before  any  redirections
+specified  by  the command (see REDIRECTION below) If |& is used, the standard error of command is connected to command2's standard input through the pipe; it is shorthand for 2>&1 |
+
+
+command [-pVv] command [arg ...]
+Run  command  with  args suppressing the normal shell function lookup. Only builtin commands or commands found in the PATH are executed. 
+也可以用来在默认PATH路径下查找命令，失败返回127

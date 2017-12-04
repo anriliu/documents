@@ -6,5 +6,5 @@ rpm -Uvh http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-3.noa
 yum -y install --enablerepo=mesosphere mesos
 
 master需要开启5050端口，slave开启5051端口
-mesos-master --hostname=172.18.91.139 --ip=172.18.91.139 --work_dir=/var/lib/mesos/
-mesos-agent --master=172.18.91.139:5050 --containerizers=docker,mesos --work_dir=/var/lib/mesos-slave --resources='cpus(*):2; mem(*):1000'
+mesos-master --hostname=172.18.91.139 --ip=172.18.91.139 --hostname_lookup=false --work_dir=/var/lib/mesos/ --log_dir=/var/log/mesos/
+mesos-agent --master=172.18.91.139:5050 --containerizers=docker,mesos --work_dir=/var/lib/mesos-slave --switch_user=false --hostname_lookup=false --log_dir=/var/log/mesos/ --resources='cpus(*):2; mem(*):1000'
