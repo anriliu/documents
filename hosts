@@ -9,6 +9,7 @@
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153
+#172.18.91.139
 [localnet]
 #172.27.0.[204:205] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web /data/tomcat/tomcat-smartfoundry-api /data/tomcat/smartfoundry-hosting"
 #172.27.1.[7:8] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web"
@@ -30,18 +31,20 @@
 #172.18.91.152
 #172.18.91.153
 [mongobackup]
-192.168.168.42 project=mmm
+#192.168.168.42 project=mmm
 [redis]
-192.168.168.41
-192.168.168.42 slaveof=192.168.168.41
+#172.18.91.139
+#192.168.168.41
+#192.168.168.42 slaveof=192.168.168.41
 [python]
+#172.18.91.139
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153
 [zookeeper]
-192.168.168.41 ID=1
-192.168.168.42 ID=2
-192.168.168.43 ID=3
+#192.168.168.41 ID=1
+#192.168.168.42 ID=2
+#192.168.168.43 ID=3
 [activemq]
 #192.168.168.44 active_hostname=192.168.168.44
 #192.168.168.41 active_hostname=192.168.168.41
@@ -51,12 +54,14 @@
 #192.168.168.42 mysql_slave=true
 #172.18.91.149 mysql_slave=true
 #192.168.168.41
+172.18.91.139
 [mysqlbackup]
 #192.168.168.41 project=hgg binlog_path=/var/log/mysqlbin
 #192.168.168.43 project=gooo binlog_oath=/var/log/mysqlbin
 [nodejs]
 #192.168.168.41
 [java]
+#172.18.91.139
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153

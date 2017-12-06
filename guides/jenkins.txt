@@ -106,3 +106,9 @@ stage "s3"
 if (theStage in ["s1", "s2", "s3"]) {
     sleep 2
 }
+
+
+to find out encrypted password:
+1.find out encrypted password at jenkins_home/credentials.xml or jenkins.plugins.publish_over_ssh.BapSshPublisherPlugin.xml for ssh plugin
+2.run below script at http://jenkins_url/script
+println( hudson.util.Secret.decrypt("{AQAAABAAAAAQkd4TBxD7W2xr1Dtp2Mqec19DkO41qd5WatFJgUerh=}") )

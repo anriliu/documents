@@ -2,8 +2,8 @@
 - hosts: redis
   gather_facts: yes
   vars:
-     MNREDIS: yes
-     redismaster: 192.168.168.41
-     redispass: pa11sshJh220
+#     MNREDIS: yes
+#     redismaster: 192.168.168.41
+#     redispass: pa11sshJh220
   roles: 
     - {role: redis}
