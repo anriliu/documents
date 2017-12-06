@@ -1,1 +1,3 @@
 ---
+dependencies:
+ - { role: 'python', when: mesos_role== 'master'}

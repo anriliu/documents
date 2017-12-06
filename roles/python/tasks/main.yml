@@ -32,3 +32,4 @@
     - pymongo
     - pymysql
     - Scrapy
+    - ConfigParser
