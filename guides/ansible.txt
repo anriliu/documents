@@ -293,3 +293,19 @@ This approach is similar to applying a conditional to a task such as:
 
 - command: /opt/application/upgrade_db.py
   when: inventory_hostname == webservers[0]
+
+
+
+listen 可以用来给多个handler对应同一个被调用名
+handlers:
+    - name: restart memcached
+      service: name=memcached state=restarted
+      listen: "restart web services"
+    - name: restart apache
+      service: name=apache state=restarted
+      listen: "restart web services"
+
+tasks:
+    - name: restart everything
+      command: echo "this task will restart the web services"
+      notify: "restart web services"

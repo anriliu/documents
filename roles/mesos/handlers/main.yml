@@ -1,7 +1,18 @@
 ---
 - name: start mesos-agent
   service: name=mesos-agent state=restarted enabled=yes daemon-reload=yes
+  listen: "start mesos-agent"
 - name: start mesos-master
   service: name=mesos-master state=restarted enabled=yes daemon-reload=yes
+  listen: "start mesos-master"
 - name: start docker
   service: name=docker state=restarted enabled=yes
+- name: stop mesos-slave
+  service: name=mesos-slave state=stopped enabled=no
+  listen: "start mesos-agent"
+- name: stop mesos-master
+  service: name=mesos-master state=stopped enabled=no
+  listen: "start mesos-agent"
+- name: stop mesos-slave-master
+  service: name=mesos-slave state=stopped enabled=no
+  listen: "start mesos-master"

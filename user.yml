@@ -5,9 +5,6 @@
   remote_user: root
   gather_facts: no
   tasks:
-  - name: add  users
-    user: name={{ username }} password={{ upassword |password_hash('sha512') }} groups=wheel append=yes state=present generate_ssh_key=yes
-    tags: adduser
   - name: install libselinux-python
     yum: name=libselinux-python state=present
     register: install
@@ -15,6 +12,15 @@
     retries: 5
     delay: 5
     tags: always
+  - name: remove user
+    user: name={{ username }} remove=yes  state=absent
+    tags: deluser
+  - name: add  users
+    user: name={{ username }} password={{ upassword |password_hash('sha512') }} groups=wheel append=yes state=present generate_ssh_key=yes
+    tags: adduser
+  - name: Change user password
+    user: name={{ username }} update_password=always password={{ upassword |password_hash('sha512') }}
+    tags: chpasswd
   - name: Allow 'wheel' group to have passwordless sudo
     lineinfile:
      dest: /etc/sudoers
@@ -23,12 +29,6 @@
 #     line: '%wheel ALL=(ALL) NOPASSWD: ALL'
      line: '%wheel ALL=(ALL) ALL'
     tags: adduser
-  - name: remove user
-    user: name={{ username }} remove=yes  state=absent
-    tags: deluser
-  - name: Change user password
-    user: name={{ username }} update_password=always password={{ upassword |password_hash('sha512') }}
-    tags: chpasswd
   - name: create ssh folder
     file: path=/home/{{username}}/.ssh/ state=directory mode=0700 owner={{username}}
     tags: adduser

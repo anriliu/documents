@@ -9,7 +9,7 @@
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153
-#172.18.91.139
+172.18.91.142
 [localnet]
 #172.27.0.[204:205] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web /data/tomcat/tomcat-smartfoundry-api /data/tomcat/smartfoundry-hosting"
 #172.27.1.[7:8] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web"
@@ -33,6 +33,7 @@
 [mongobackup]
 #192.168.168.42 project=mmm
 [redis]
+172.18.91.142
 #172.18.91.139
 #192.168.168.41
 #192.168.168.42 slaveof=192.168.168.41
@@ -41,6 +42,7 @@
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153
+172.18.91.142
 [zookeeper]
 #192.168.168.41 ID=1
 #192.168.168.42 ID=2
@@ -65,7 +67,10 @@
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153
+172.18.91.142
 [mesos]
 #172.18.91.139 mesos_role=master
 #172.18.123.52 mesos_role=agent
 #172.18.91.142 mesos_role=agent
+192.168.168.41 mesos_role=agent
+192.168.168.42 mesos_role=master
