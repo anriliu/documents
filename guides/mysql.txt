@@ -1,3 +1,8 @@
+tools:
+percona-toolkit
+mysql-utilities:replication工具都是针对gtid开启的
+
+
 Init mysql database without root passwd:
 mysqld --initialize-insecure --user=mysql
 
@@ -167,3 +172,6 @@ mysqladmin ext -i1 -pPassw0rd |awk '/Queries/{q=$4-qp;qp=$4}/Threads_connected/{
 
 Grant也可以使用_和%通配符可以只用\转义：
 GRANT ... ON `foo_%`.* TO
+
+
+CHECKSUM TABLE table_name也可以用来对比slave和master的两个表是否一致
