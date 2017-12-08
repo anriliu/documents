@@ -48,7 +48,7 @@ bridge vlan delete dev eth1
 
 policy route:
 iptables -t mangle -A FORWARD -s 192.168.0.0/16  -j MARK --set-mark 1 #there mush have some filter can't just MARK without filter or the ip rule won't work
-ip rule fwmark 1 table 999
+ip rule add fwmark 1 table 999
 if also need turn off rp_filter:
 sysctl net.ipv4.conf.default.rp_filter=0
 
