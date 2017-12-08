@@ -47,10 +47,12 @@ bridge vlan delete dev eth1
 
 
 policy route:
-iptables -t mangle -A FORWARD -s 192.168.0.0/16  -j MARK --set-mark 1 #there mush have some filter can't just MARK without filter or the ip rule won't work
+iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j MARK --set-mark 1 #this can only set on PREROUTING  because it will looking up routing once after this table
 ip rule add fwmark 1 table 999
 if also need turn off rp_filter:
 sysctl net.ipv4.conf.default.rp_filter=0
+sysctl net.ipv4.conf.all.rp_filter=0
+There is aways a mangle table before filter and nat tables
 
                               XXXXXXXXXXXXXXXXXX
                              XXX     Network    XXX
@@ -71,15 +73,15 @@ sysctl net.ipv4.conf.default.rp_filter=0
 Routing decision                                                  |
 ****************                                                  |
        |                                                          |
-       v                        ****************                  |
-+-------------+       +------>  Routing decision  <---------------+
-|table: nat   |       |         ****************
-|chain: OUTPUT|       |               +
-+-----+-------+       |               |
-      |               |               v
-      v               |      +-------------------+
-+--------------+      |      | table: nat        |
-|table: filter | +----+      | chain: POSTROUTING|
+       v                                                          |
++-------------+                         --------------------------
+|table: nat   |                         |    
+|chain: OUTPUT|                         |                          
++-----+-------+                         |
+      |                                 v
+      v                      +-------------------+
++--------------+             | table: nat        |
+|table: filter | +---------> | chain: POSTROUTING|
 |chain: OUTPUT |             +--------+----------+
 +--------------+                      |
                                       v
