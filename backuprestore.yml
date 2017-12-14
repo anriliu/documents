@@ -1,0 +1,41 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+     mysql: 
+#        - name: jira
+#          date:
+#          dbhost:
+#          dbuser:
+#          dbpass:
+        - name: youpin
+          date: 20171211
+          dbhost: 192.168.168.41
+          dbuser: admin
+          dbpass: admin
+     mongo:
+        - name: youpin
+          date: 20171212
+          dbhost: 192.168.168.41
+          dbuser: admin
+          dbpass: admin
+  tasks: 
+  - block:
+    - name: extract mongodb backup file 
+      unarchive:
+          remote_src: yes
+          src:  /home/mongobackup/{{item.name}}/{{item.date}}_0100/{{item.name}}rep.tar 
+          dest: /home/mongobackup/{{item.name}}/{{item.date}}_0100/
+      with_items: "{{mongo}}"
+    - name: restore mongodb
+      shell: mongorestore --host={{item.dbhost}} --username={{item.dbuser}} --password={{item.dbpass}} --dir=/home/mongobackup/{{item.name}}/{{item.date}}_0100/{{item.name}}rep/dump/ --gzip  --oplogReplay
+      with_items: "{{mongo}}"
+    when: mongo is defined
+  - block:
+    - name: restore mysql backup
+      shell: zcat {{item.name}}_{{item.date}}02.sql.gz|mysql -h {{item.dbhost}} -u{{item.dbuser}} -p{{item.dbpass}} 
+      args: 
+        chdir: /home/mysqlbackup/{{item.name}}/ 
+      with_items: 
+          - "{{mysql}}"
+    when: mysql is defined
