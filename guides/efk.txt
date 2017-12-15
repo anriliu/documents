@@ -1,0 +1,39 @@
+Elasticsearch + Fluentd + Kibana for docker logging
+yum install https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.1.0.rpm
+yum install https://artifacts.elastic.co/downloads/kibana/kibana-6.1.0-x86_64.rpm
+curl -L https://toolbelt.treasuredata.com/sh/install-redhat-td-agent3.sh | sh
+
+kibana configuarion:
+server.host
+elasticsearch.url
+logging.dest
+xpack.security.enabled: false
+/usr/share/kibana/bin/kibana-plugin install x-pack
+
+Elasticsearch configuration:
+xpack.security.enabled: false
+
+/usr/share/elasticsearch/bin/elasticsearch-plugin install x-pack
+
+td-agent:
+<source>
+  @type forward
+  @id input_forward
+</source>
+<match hrx.**>
+  @type elasticsearch
+  logstash_format true
+  logstash_prefix fluentd
+  logstash_dateformat %Y%m%d
+  include_tag_key true
+  tag_key tag
+  host localhost
+  port 9200
+  <buffer>
+    flush_interval 2s # for testing
+  </buffer>
+</match>
+match is matching msg tag
+
+docker:
+must run docker container with --log-opt tag="hrx.{{.Name}}" --log-driver=fluentd --log-opt fluentd-address=fluentd_ip:24224 
