@@ -34,6 +34,6 @@ td-agent:
   </buffer>
 </match>
 match is matching msg tag
-
+Filter plugins enables Fluentd to modify event streams.
 docker:
 must run docker container with --log-opt tag="hrx.{{.Name}}" --log-driver=fluentd --log-opt fluentd-address=fluentd_ip:24224 

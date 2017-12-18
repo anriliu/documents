@@ -1,0 +1,10 @@
+TCP port 2377 for cluster management communications
+TCP and UDP port 7946 for communication among nodes
+UDP port 4789 for overlay network traffic
+ip protocol 50 (ESP) traffic is allowed if need create an overlay network with encryption
+
+docker swarm mode的host拥有三个网络，一个是bridge，两个overlay，container至少有2个overlay网络,一个是swarm用来做lb和routing mesh的ingress，还有一个是用户自定义的overlay,不同network namespace之间相同subnet的连接都是通过创建veth pair来实现的,不同host之间的相同overlay是通过创建vxlan来连接的。
+bridge 一般名为docker_gwbridge，作为默认网关用来给本机的containers访问外部网络,每个container都会有一个interface通过veth pair连接到这个bridge上。
+用户自定义的overlay网络用来swarm内部同一网络的containers相互通信,就是这个IP在swarm engine内部有对应的dns记录。
+ingree overlay一般名字为ingress，用来做routing mesh和load balance,这个网络只有当暴露了service的端口时,对应的container中才会创建属于这个网络的接口,并通过veth pair 连接到host的ingress网络的namespace中,host通过iptables 创建nat规则，重定向外部访问此service所暴露端口的流量到ingress namespace中的bridge network ip,再通过ipvs的规则转发到各个container的ingress 网络IP
+可以通过nsenter --net=/var/run/docker/netns/ingress_sbox ipvsadm --list 查看
