@@ -21,3 +21,9 @@ docker service create --name dns-cache \
 DNS round-robin is useful in cases where you want to use your own load balancer, such as HAProxy. To configure a service to use DNSRR, use the flag --endpoint-mode dnsrr when creating a new service or updating an existing one.
 If you configure a service to use DNS round-robin (DNSRR) service discovery, there is not a single virtual IP. Instead, Docker sets up DNS entries for the service such that a DNS query for the service name returns a list of IP addresses, and the client connects directly to one of these.
 
+
+volume-nocopy
+ By default, if you attach an empty volume to a container, and files or directories already existed at the mount-path in the container (dst), the Engine copies those files and directories into the volume, allowing the host to access them. Set volume-nocopy to disables copying files from the container’s filesystem to the volume and mount the empty volume. A value is optional
+docker service create --mount 'type=volume,src=test,volume-driver=local,dst=/data/,volume-nocopy=true,volume-opt=type=nfs,volume-opt=device=:/nfs/test,volume-opt=o=addr=nfs.my.corporate.network' --name test --entrypoint=ls volume:defined-with-copy /data/
+
+
