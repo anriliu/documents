@@ -8,3 +8,16 @@ bridge 一般名为docker_gwbridge，作为默认网关用来给本机的contain
 用户自定义的overlay网络用来swarm内部同一网络的containers相互通信,就是这个IP在swarm engine内部有对应的dns记录。
 ingree overlay一般名字为ingress，用来做routing mesh和load balance,这个网络只有当暴露了service的端口时,对应的container中才会创建属于这个网络的接口,并通过veth pair 连接到host的ingress网络的namespace中,host通过iptables 创建nat规则，重定向外部访问此service所暴露端口的流量到ingress namespace中的bridge network ip,再通过ipvs的规则转发到各个container的ingress 网络IP
 可以通过nsenter --net=/var/run/docker/netns/ingress_sbox ipvsadm --list 查看
+
+
+Bypass the routing mesh
+如果你不想使用 routing mesh，想要在访问特定host ip时候就访问他上面的container那么可以在创建service的时候指定mode=host参数：
+docker service create --name dns-cache \
+  --publish published=53,target=53,protocol=udp,mode=host \
+  --mode global \
+  dns-cache
+这种一般用来和外部load balancer结合使用
+使用外部load balancer时候也经常可能会结合DNS round-robin:
+DNS round-robin is useful in cases where you want to use your own load balancer, such as HAProxy. To configure a service to use DNSRR, use the flag --endpoint-mode dnsrr when creating a new service or updating an existing one.
+If you configure a service to use DNS round-robin (DNSRR) service discovery, there is not a single virtual IP. Instead, Docker sets up DNS entries for the service such that a DNS query for the service name returns a list of IP addresses, and the client connects directly to one of these.
+
