@@ -35,5 +35,27 @@ td-agent:
 </match>
 match is matching msg tag
 Filter plugins enables Fluentd to modify event streams.
+Fluentd has 7 types of plugins: Input, Parser, Filter, Output, Formatter, Storage and Buffer.
+fluentd能接收的事件包含三个部分tag, time and record，tag是由.分割的字符串，time 是由input plugins指定的Unix time format时间,record是JSON 对象
+
 docker:
 must run docker container with --log-opt tag="hrx.{{.Name}}" --log-driver=fluentd --log-opt fluentd-address=fluentd_ip:24224 
+
+
+一些通用的plugin配置选项These parameters are system reserved and it has @ prefix.
+@type: Specify plugin type
+@id: Specify plugin id. in_monitor_agent uses this value for plugin_id field
+@label: Specify label symbol. See label section
+@log_level: Specify per plugin log level. See Per Plugin Log section
+type, id and log_level are supported for backward compatibility.
+
+You can evaluate the Ruby code with #{} in " quoted string. 
+配置文件主要包括以下一些指令:
+source directives determine the input sources.
+match directives determine the output destinations.
+filter directives determine the event processing pipelines.
+system directives set system wide configuration.
+label directives group the output and filter for internal routing
+@include directives include other files.
+
+
