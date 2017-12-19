@@ -48,6 +48,7 @@ bridge vlan delete dev eth1
 
 policy route:
 iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j MARK --set-mark 1 #this can only set on PREROUTING  because it will looking up routing once after this table
+or iptables -t mangle -I PREROUTING -m iprange --src-range 192.168.168.1-192.168.168.100 ! -d 192.168.168.44  -j MARK --set-mark 1
 ip rule add fwmark 1 table 999
 if also need turn off rp_filter:
 sysctl net.ipv4.conf.default.rp_filter=0

@@ -145,6 +145,10 @@ ip route add table 999 default dev $INTERFACE
 ip rule add to 8.8.4.4 table 999
 iptables -t nat -A POSTROUTING -o neo -j SNAT --to-source 172.20.100.120
 
+or routing with fwmark:
+iptables -t mangle -A PREROUTING -m iprange --src-range 192.168.168.1-192.168.168.100 ! -d 192.168.168.44  -j MARK --set-mark 1
+ip rule add fwmark 1 table 999 
+
 systemctl start tinc@netname  
 centos 7在/usr/lib/systemd/system/tinc@.service中加入一下信息以保证tinc-up中的命令能运行
 After=network.target 
