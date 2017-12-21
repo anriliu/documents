@@ -24,7 +24,7 @@ curl -XGET "192.168.1.101:9200/_cat/indices?v"
 
 
 Create index with mapping and settings:
-curl -XPUT "192.168.1.101:9200/index_test" -d ' # 注意这里的'号
+curl -XPUT "192.168.1.101:9200/index_test?pretty"  -H 'Content-Type: application/json' -d ' # 注意这里的'号
 {
   "settings": {
     "index": {
@@ -118,3 +118,127 @@ test `ss -tl src  :$first_port1 or src :$first_port2 or src :$second_port1 or sr
 
 docker run -d -e "cluster.name=$clustername" -e "xpack.security.enabled=false" -e "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" -v $first_dpath:/usr/share/elasticsearch/data  -e "discovery.zen.ping.unicast.hosts=localhost:${second_port2}" -p ${first_port1}:9200 -p ${first_port2}:9300  docker.elastic.co/elasticsearch/elasticsearch:5.5.1
 docker run -d  -e "cluster.name=$clustername" -e "xpack.security.enabled=false" -e "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" -v ${second_dpath}:/usr/share/elasticsearch/data  -e "discovery.zen.ping.unicast.hosts=localhost:${first_port2}" -p ${second_port1}:9200 -p ${second_port2}:9300  docker.elastic.co/elasticsearch/elasticsearch:5.5.1
+
+
+
+
+
+
+nginx通过lua脚本认证:
+#     $ printf "nobody:$(openssl passwd -apr1 nobody)\n" >> passwords
+#     $ printf "all:$(openssl passwd -apr1 all)\n"       >> passwords
+#     $ printf "user:$(openssl passwd -apr1 user)\n"     >> passwords
+#     $ printf "admin:$(openssl passwd -apr1 admin)\n"   >> passwords
+nginx_authorize_by_lua.conf
+worker_processes  1;
+
+error_log logs/lua.log notice;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  upstream elasticsearch {
+    server 127.0.0.1:9200;
+    keepalive 15;
+  }
+
+  server {
+    listen 8080;
+
+    location / {
+      auth_basic           "Protected Elasticsearch";
+      auth_basic_user_file passwords;
+
+      access_by_lua_file '../authorize.lua';
+
+      proxy_pass http://elasticsearch;
+      proxy_redirect off;
+      proxy_buffering off;
+
+      proxy_http_version 1.1;
+      proxy_set_header Connection "Keep-Alive";
+      proxy_set_header Proxy-Connection "Keep-Alive";
+    }
+
+  }
+}
+
+authorize.lua:
+-- authorization rules
+
+local restrictions = {
+  all  = {
+    ["^/$"]                             = { "HEAD" }
+  },
+
+  user = {
+    ["^/$"]                             = { "GET" },
+    ["^/?[^/]*/?[^/]*/_search"]         = { "GET", "POST" },
+    ["^/?[^/]*/?[^/]*/_msearch"]        = { "GET", "POST" },
+    ["^/?[^/]*/?[^/]*/_validate/query"] = { "GET", "POST" },
+    ["/_aliases"]                       = { "GET" },
+    ["/_cluster.*"]                     = { "GET" }
+  },
+
+  admin = {
+    ["^/?[^/]*/?[^/]*/_bulk"]          = { "GET", "POST" },
+    ["^/?[^/]*/?[^/]*/_refresh"]       = { "GET", "POST" },
+    ["^/?[^/]*/?[^/]*/?[^/]*/_create"] = { "GET", "POST" },
+    ["^/?[^/]*/?[^/]*/?[^/]*/_update"] = { "GET", "POST" },
+    ["^/?[^/]*/?[^/]*/?.*"]            = { "GET", "POST", "PUT", "DELETE" },
+    ["^/?[^/]*/?[^/]*$"]               = { "GET", "POST", "PUT", "DELETE" },
+    ["/_aliases"]                      = { "GET", "POST" }
+  }
+}
+
+-- get authenticated user as role
+local role = ngx.var.remote_user
+ngx.log(ngx.DEBUG, role)
+
+-- exit 403 when no matching role has been found
+if restrictions[role] == nil then
+  ngx.header.content_type = 'text/plain'
+  ngx.log(ngx.WARN, "Unknown role ["..role.."]")
+  ngx.status = 403
+  ngx.say("403 Forbidden: You don\'t have access to this resource.")
+  return ngx.exit(403)
+end
+
+-- get URL
+local uri = ngx.var.uri
+ngx.log(ngx.DEBUG, uri)
+
+-- get method
+local method = ngx.req.get_method()
+ngx.log(ngx.DEBUG, method)
+
+local allowed  = false
+
+for path, methods in pairs(restrictions[role]) do
+
+  -- path matched rules?
+  local p = string.match(uri, path)
+
+  local m = nil
+
+  -- method matched rules?
+  for _, _method in pairs(methods) do
+    m = m and m or string.match(method, _method)
+  end
+
+  if p and m then
+    allowed = true
+    ngx.log(ngx.NOTICE, method.." "..uri.." matched: "..tostring(m).." "..tostring(path).." for "..role)
+    break
+  end
+end
+
+if not allowed then
+  ngx.header.content_type = 'text/plain'
+  ngx.log(ngx.WARN, "Role ["..role.."] not allowed to access the resource ["..method.." "..uri.."]")
+  ngx.status = 403
+  ngx.say("403 Forbidden: You don\'t have access to this resource.")
+  return ngx.exit(403)
+end

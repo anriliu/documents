@@ -1,0 +1,16 @@
+---
+- name: copy elasticsearch 6.x serve rpm repository
+  copy: src="elastic.repo" dest="/etc/yum.repos.d/elastic.repo"  
+- name: install elasticsearch server
+  yum: name=elasticsearch-{{elasticsearch.version}} state=present
+  notify: restart elasticsearch
+- name: check x-pack plugin folder
+  stat: path=/usr/share/elasticsearch/plugins/x-pack/
+  register: xpack
+- name: install X-Pack plugin
+  shell: /usr/share/elasticsearch/bin/elasticsearch-plugin install x-pack
+  when: "xpack.stat.exists == False"
+  notify: restart elasticsearch
+- name: update elasticsearch configuration
+  template: src=elasticsearch.yml.j2 dest=/etc/elasticsearch/elasticsearch.yml
+  notify: restart elasticsearch

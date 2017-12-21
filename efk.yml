@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+     elastic: 
+          name: youpin
+          date: 20171211
+          dbhost: 192.168.168.41
+          dbuser: admin
+          dbpass: admin
+     fluentd :
+          name: youpin
+          date: 20171212
+          dbhost: 192.168.168.41
+          dbuser: admin
+          dbpass: admin
+     kibana :
+          name: youpin
+          date: 20171212
+          dbhost: 192.168.168.41
+          dbuser: admin
+          dbpass: admin
+  tasks: 

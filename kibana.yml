@@ -1,0 +1,8 @@
+---
+- hosts: kibana
+  gather_facts: no
+  vars:
+     kibana :
+          version: 6.1.0
+  roles:
+    - { role: kibana} 

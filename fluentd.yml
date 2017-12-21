@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+     fluentd :
+          name: youpin
+          date: 20171212
+          dbhost: 192.168.168.41
+          dbuser: admin
+          dbpass: admin
+  tasks: 

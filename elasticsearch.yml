@@ -1,0 +1,10 @@
+---
+- hosts: elasticsearch
+  gather_facts: no
+  vars:
+     elasticsearch: 
+          version: 6.1.0
+          clustername: thanksgiving
+  roles:
+    - {role: elasticsearch} 
+  

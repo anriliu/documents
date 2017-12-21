@@ -38,6 +38,8 @@ To restore a backup, you will also need to restore /etc/gitlab/gitlab-secrets.js
 # limit backup lifetime to 7 days - 604800 seconds
 gitlab_rails['backup_keep_time'] = 604800
 
+after change /etc/gitlab/gitlab.rb you must run 'gitlab-ctl reconfigure' to make it take effect
+
 Restore from backup you can restore on other server which has same version gitlab installed:
 gitlab-ctl reconfigure
 /opt/gitlab/embedded/bin/runsvdir-start

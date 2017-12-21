@@ -1,0 +1,16 @@
+---
+- name: copy kibana 6.x serve rpm repository
+  copy: src="kibana.repo" dest="/etc/yum.repos.d/kibana.repo"  
+- name: install kibana server
+  yum: name=kibana-{{kibana.version}} state=present
+  notify: restart kibana
+- name: check x-pack plugin folder
+  stat: path=/usr/share/kibana/plugins/x-pack/
+  register: xpack
+- name: install X-Pack plugin
+  shell: /usr/share/kibana/bin/kibana-plugin install x-pack
+  when: "xpack.stat.exists == False"
+  notify: restart kibana
+- name: update kibana configuration
+  template: src=kibana.yml.j2 dest=/etc/kibana/kibana.yml
+  notify: restart kibana
