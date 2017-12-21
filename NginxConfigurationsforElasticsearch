@@ -1,0 +1,84 @@
+Example Nginx Configurations for Elasticsearch
+==============================================
+
+This repository contains couple of example configurations for using Nginx as a proxy for Elasticsearch.
+
+These examples can be run standalone from this repository -- the general pattern is:
+
+    $ nginx -p $PWD/nginx/ -c $PWD/<CONFIG FILE>
+
+When you change the configuration, simply _reload_ the Nginx process to pick up the changes:
+
+    $ nginx -p $PWD/nginx/ -c $PWD/<CONFIG FILE> -s reload
+
+Please refer to the Nginx [documentation](http://nginx.org/en/docs/) for  more information.
+
+## `nginx_round_robin.conf`
+
+A simple proxy which distributes requests in a round-robin way across configured nodes.
+
+More information: <http://nginx.org/en/docs/http/ngx_http_upstream_module.html>
+
+## `nginx_keep_alive.conf`
+
+Configures the proxy to keep a pool of persistent connections, preventing opening
+sockets at Elasticsearch for each connection, e.g. with deficient HTTP clients.
+
+More information: <http://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive>
+
+## `nginx_http_auth_basic.conf`
+
+The simplest possible authorization proxy for Elasticsearch: allow access only
+to users authenticated with HTTP Basic Auth, with credentials stored in a `passwords` file.
+
+## `nginx_http_auth_deny_path.conf`
+
+A variation on the simple authorization proxy, which prevents access to certain URLs
+(`_shutdown`).
+
+## `nginx_http_auth_allow_path_and_method.conf`
+
+A variation on the authorization proxy, which uses named `location`s to
+allow certain paths and methods without authorization.
+
+Demonstrates how to use error codes in Nginx configuration to route requests
+and how to work around the lack of multiple conditions in Nginx' `if` statement.
+
+More information: <http://wiki.nginx.org/RewriteMultiCondExample>
+
+## `nginx_http_auth_roles.conf`
+
+Demonstrates how to use multiple Nginx servers to separate access rights for
+multiple types of users: unauthenticated, _users_ and _admins_.
+
+Unauthenticated users can access `HEAD /`, but nothing else.
+
+Authenticated _user_ can access only the `_search` and `_analyze` endpoints
+(with whatever HTTP method), other endpoints are denied.
+
+More information: <http://nginx.org/en/docs/http/ngx_http_core_module.html#location>
+
+## `nginx_authorize_by_lua.conf`
+
+Demonstrates how to use custom logic for implementing authorization, via the
+[Lua](http://wiki.nginx.org/HttpLuaModule) support in Nginx.
+
+The request is authenticated against credentials in the `passwords` file and if
+allowed by the `access_by_lua_file` return value, proxied to Elasticsearch.
+
+The authorization logic is stored in the `authorize.lua` file, which contains
+a simple "dictionary" (in the form of Lua _table_) with rules for three
+"roles": anybody, users and admins.
+
+Based on the `$remote_user` Nginx variable value, the request path and method
+are evaluated against the dictionary, and the request is denied with "403 Forbidden"
+if no matching rule is found.
+
+Lua and Nginx Overview: <http://www.londonlua.org/scripting_nginx_with_lua/slides.html>
+
+More information: <http://openresty.org>
+
+
+
+https://gist.github.com/karmi/b0a9b4c111ed3023a52d#file-authorize-lua
+https://gist.github.com/karmi/b0a9b4c111ed3023a52d#file-nginx_authorize_by_lua-conf
