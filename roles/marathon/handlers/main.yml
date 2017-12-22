@@ -1,0 +1,3 @@
+---
+- name: start marathon
+  service: name=marathon state=restarted enabled=yes daemon-reload=yes

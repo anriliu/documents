@@ -1,11 +1,11 @@
 ---
 - name: copy kibana 6.x serve rpm repository
-  copy: src={{item}} dest="/etc/yum.repos.d/kibana.repo"  
+  copy: src={{item}} dest="/etc/yum.repos.d/" 
   with_items:
     - openresty.repo
     - kibana.repo
 - name: install kibana and openresty server
-  yum: name={{item}} state=present
+  yum: name={{item}} state=present  disable_gpg_check=yes
   with_items:
     - kibana-{{kibana.version}}
     - openresty
@@ -14,9 +14,19 @@
   stat: path=/usr/share/kibana/plugins/x-pack/
   register: xpack
 - name: install X-Pack plugin
-  shell: /usr/share/kibana/bin/kibana-plugin install x-pack
+  shell: /usr/share/kibana/bin/kibana-plugin install x-pack&&chown -R kibana /usr/share/kibana/ 
   when: "xpack.stat.exists == False"
   notify: restart kibana
+- name: create kibana log file
+  file: path=/var/log/kibana.log state=touch owner=kibana mode=0644
 - name: update kibana configuration
   template: src=kibana.yml.j2 dest=/etc/kibana/kibana.yml
   notify: restart kibana 
+- name: create kibana web user
+  shell: printf "{{kibana.webuser}}:$(openssl passwd -crypt {{kibana.webpass}})\n" >kib_passwords&&printf "{{kibana.webuser}}:$(openssl passwd -crypt {{kibana.webpass}})\n" >es_passwords
+  args:
+      chdir: /usr/local/openresty/nginx/conf/
+- name: update openresty configuration
+  template: src=nginx.conf.j2 dest=/usr/local/openresty/nginx/conf/nginx.conf
+  notify: restart openresty
+  

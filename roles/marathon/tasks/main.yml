@@ -1,0 +1,21 @@
+---
+- name: end tasks if it's not centos7
+  fail: msg='ensure you are running this on centos7 system'
+  when: ansible_distribution_major_version != "7"
+- name: install mesos repository
+  yum: 
+     name: http://repos.mesosphere.com/el/7/noarch/RPMS/mesosphere-el-repo-7-3.noarch.rpm
+     state: present
+- name: install marathon-1.5.4
+  yum: name=marathon-1.5.4 state=latest
+- name: copy marathon systemd init script
+  template:
+    src: marathon.service.j2
+    dest: /etc/systemd/system/marathon.service
+    mode: 0755
+  notify: start marathon
+- name: copy over configuration file
+  template:
+      src: marathon.j2
+      dest: /etc/default/marathon
+  notify: marathon

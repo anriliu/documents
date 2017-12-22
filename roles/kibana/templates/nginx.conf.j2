@@ -1,0 +1,39 @@
+error_log logs/lua.log notice;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  upstream elasticsearch {
+    server 127.0.0.1:9200;
+  }
+  upstream  kibana {
+     server 127.0.0.1:5601;
+  }
+  server {
+    listen {{ inventory_hostname }}:9200;
+
+    location / {
+      auth_basic           "Protected Elasticsearch";
+      auth_basic_user_file es_passwords;
+
+      proxy_pass http://elasticsearch;
+      proxy_redirect off;
+    }
+    
+
+  }
+
+   server {
+    listen {{ inventory_hostname }}:5601;
+
+    location / {
+      auth_basic           "Protected Elasticsearch";
+      auth_basic_user_file kib_passwords;
+
+      proxy_pass http://kibana;
+      proxy_redirect off;
+   }
+   }
+}

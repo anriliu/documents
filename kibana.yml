@@ -3,6 +3,8 @@
   gather_facts: no
   vars:
      kibana :
-          version: 6.1.0
+        version: 6.1.0
+        webuser: hello
+        webpass: world123
   roles:
     - { role: kibana} 
