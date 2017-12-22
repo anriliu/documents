@@ -8,3 +8,12 @@ yum -y install --enablerepo=mesosphere mesos
 master需要开启5050端口，slave开启5051端口
 mesos-master --hostname=172.18.91.139 --ip=172.18.91.139 --hostname_lookup=false --work_dir=/var/lib/mesos/ --log_dir=/var/log/mesos/
 mesos-agent --master=172.18.91.139:5050 --containerizers=docker,mesos --work_dir=/var/lib/mesos-slave --switch_user=false --hostname_lookup=false --log_dir=/var/log/mesos/ --resources='cpus(*):2; mem(*):1000'
+
+mesos can also use environment variable MESOS_OPTION_NAME as it's option
+
+to install marathon
+yum -y install --enablerepo=mesosphere  marathon
+default marathon need zookeeper to store data and ha election if you only have one host then you can run marathon with below options:
+--internal_store_backend mem --disable_ha
+
+marathon can also use environment variable MARATHON_OPTION_NAME as it's option

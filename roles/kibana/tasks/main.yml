@@ -1,8 +1,14 @@
 ---
 - name: copy kibana 6.x serve rpm repository
-  copy: src="kibana.repo" dest="/etc/yum.repos.d/kibana.repo"  
-- name: install kibana server
-  yum: name=kibana-{{kibana.version}} state=present
+  copy: src={{item}} dest="/etc/yum.repos.d/kibana.repo"  
+  with_items:
+    - openresty.repo
+    - kibana.repo
+- name: install kibana and openresty server
+  yum: name={{item}} state=present
+  with_items:
+    - kibana-{{kibana.version}}
+    - openresty
   notify: restart kibana
 - name: check x-pack plugin folder
   stat: path=/usr/share/kibana/plugins/x-pack/
@@ -13,4 +19,4 @@
   notify: restart kibana
 - name: update kibana configuration
   template: src=kibana.yml.j2 dest=/etc/kibana/kibana.yml
-  notify: restart kibana
+  notify: restart kibana 
