@@ -39,3 +39,7 @@ MARATHON_http_port={{ MARATH_http_port | default(8080) }}
 {%if MARATH_http_credentials is defined%}
 MESOSPHERE_HTTP_CREDENTIALS={{MARATH_http_credentials}}
 {%endif%}
+{%if MARATH_mesos_authentication_principal is defined %}
+MARATHON_mesos_authentication_principal={{MARATH_mesos_authentication_principal}}
+MARATHON_mesos_authentication_secret={{MARATH_mesos_authentication_secret}}
+{%endif%}

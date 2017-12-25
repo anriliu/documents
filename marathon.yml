@@ -3,6 +3,8 @@
   gather_facts: yes
   vars: 
 
+#    MARATH_mesos_authentication_principal:
+#    MARATH_mesos_authentication_secret:
 #    MARATH_http_port: 8080
 #    MARATH_http_credentials: webuser:webpass
 #    MARATH_ha: true
