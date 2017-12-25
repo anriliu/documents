@@ -9,18 +9,12 @@
 #172.18.91.151
 #172.18.91.152
 #172.18.91.153
-172.18.91.142
+#172.18.91.142
 [localnet]
 #172.27.0.[204:205] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web /data/tomcat/tomcat-smartfoundry-api /data/tomcat/smartfoundry-hosting"
 #172.27.1.[7:8] DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-web"
 #172.27.0.[254:255]  DIRS="/etc /root /var/log/  /data/tomcat/smartfoundry-billing"
 #172.27.0.[243:244] DIRS="/etc /root /var/log/  /data/wso2IS/wso2is-5.0.0 /data/opendj/opendj"
-#172.27.0.207 DIRS="/etc /root /var/log/ /opt/Deployments/lrs /var/lib/mysql"
-#172.27.0.[209:210]  DIRS="/etc /root /var/log/  /opt/SecureSpan/ /var/lib/mysql"
-#172.27.0.[130:131] DIRS="/etc /root /var/log/ /home/tropo_logs  /var/lib/mysql/"
-#172.27.0.[132:135] DIRS="/etc /root /var/log/ /home/tropo_logs"
-#172.27.0.140 DIRS="/etc /root /var/log/  /data3 /data/kamailio/"
-#172.27.0.142 DIRS="/etc /root /var/log/  /data3 /data/kamailio/"
 #172.27.1.[4:5] DIRS="/etc /root /var/log/ /data/kamailio"
 #172.27.0.211 DIRS="/etc /root /var/log/ /home /etc/haproxy"
 #172.27.0.242 DIRS="/etc /root /var/log/ /home /etc/haproxy"
@@ -33,16 +27,13 @@
 [mongobackup]
 #192.168.168.42 project=mmm
 [redis]
-172.18.91.142
+#172.18.91.142
 #172.18.91.139
 #192.168.168.41
 #192.168.168.42 slaveof=192.168.168.41
 [python]
 #172.18.91.139
-#172.18.91.151
-#172.18.91.152
 #172.18.91.153
-172.18.91.142
 [zookeeper]
 #192.168.168.41 ID=1
 #192.168.168.42 ID=2
@@ -56,7 +47,6 @@
 #192.168.168.42 mysql_slave=true
 #172.18.91.149 mysql_slave=true
 #192.168.168.41
-172.18.91.139
 [mysqlbackup]
 #192.168.168.41 project=hgg binlog_path=/var/log/mysqlbin
 #192.168.168.43 project=gooo binlog_oath=/var/log/mysqlbin
@@ -64,18 +54,16 @@
 #192.168.168.41
 [java]
 #172.18.91.139
-#172.18.91.151
-#172.18.91.152
-#172.18.91.153
-172.18.91.142
 [mesos]
-#172.18.91.139 mesos_role=master
-172.18.91.140 mesos_role=agent
+192.168.168.41 mesos_role=master
+#172.18.91.140 mesos_role=agent
 #172.18.91.142 mesos_role=agent
-[docker]
-[elasticsearch]
-192.168.168.42
-192.168.168.41
-192.168.168.43
-[kibana]
+#[docker]
+#[elasticsearch]
+#192.168.168.42
+#192.168.168.41
+#192.168.168.43
+#[kibana]
+#192.168.168.42
+[marathon]
 192.168.168.42

@@ -18,4 +18,4 @@
   template:
       src: marathon.j2
       dest: /etc/default/marathon
-  notify: marathon
+  notify: start marathon

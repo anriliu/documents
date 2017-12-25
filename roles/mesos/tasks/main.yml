@@ -13,17 +13,20 @@
      state: present
 - name: install mesos-1.4.1
   yum: name=mesos-1.4.1 state=latest
-- name: install docker-ce
-  yum: name=docker-ce state=present
-  when: ansible_distribution_major_version == "7"
-  notify: start docker
+#- name: install docker-ce
+#  yum: name=docker-ce state=present
+#  notify: start docker
 - name: copy init script for centos7
   copy:
     src: mesos-{{mesos_role}}.service
     dest: /etc/systemd/system/
     mode: 0755
-  when: ansible_distribution_major_version == "7"
   notify: start mesos-{{mesos_role}}
+- name: generate credentials file
+  template:
+      src: credentials.j2
+      dest: /etc/mesos-master/credentials
+  when: MESOS_authenticate_frameworks is defined and mesos_role == "master"
 - name: copy over configuration file
   template:
       src: "{{mesos_role}}.j2"

@@ -2,9 +2,12 @@
 - hosts: marathon
   gather_facts: yes
   vars: 
+
+#    MARATH_http_port: 8080
+#    MARATH_http_credentials: webuser:webpass
 #    MARATH_ha: true
 #    MESOS_zk: zk://192.168.168.41:2181,192.168.168.42:2181,192.168.168.43:2181/mesos 
 #    MARATH_zk: zk://192.168.168.41:2181,192.168.168.42:2181,192.168.168.43:2181/marathon
-    MESOS_master: 172.18.91.139:5050
+    MESOS_master: 192.168.168.41:5050
   roles: 
-    - {role: mesos}
+    - {role: marathon}

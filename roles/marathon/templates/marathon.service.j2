@@ -20,7 +20,7 @@ ExecStartPre=/bin/mkdir -p /run/marathon
 ExecStartPre=/bin/chown marathon:marathon /run/marathon
 ExecStartPre=/bin/chmod 755 /run/marathon
 PermissionsStartOnly=true
-LimitNOFILE=1024
+LimitNOFILE=2048
 
 [Install]
 WantedBy=multi-user.target
