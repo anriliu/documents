@@ -3,6 +3,7 @@
   gather_facts: yes
   vars: 
 #    MESOS_authenticate_frameworks: true
+#    MESOS_authenticate_http: true
 #    MESOS_principal: fmuser
 #    MESOS_secret: fmpass
 #    MESOS_cluster: true

@@ -9,6 +9,13 @@ MESOS_log_dir=/var/log/mesos
 MESOS_logging_level=INFO
 MESOS_hostname_lookup=false
 MESOS_authenticate_frameworks={{MESOS_authenticate_frameworks|default('false') |lower}}
+{% if MESOS_authenticate_frameworks is defined %}
+MESOS_authenticate_http_frameworks=true
+{%endif%}
 {% if MESOS_principal is defined %}
-MESOS_credentials=/etc/mesos-master/credentials
+MESOS_credentials=file:///etc/mesos-master/credentials
 {% endif %}
+{% if MESOS_authenticate_http is defined%}
+MESOS_authenticate_http_readonly=true
+MESOS_authenticate_http_readwrite=true
+{%endif%}

@@ -56,7 +56,7 @@
 #172.18.91.139
 [mesos]
 192.168.168.41 mesos_role=master
-#172.18.91.140 mesos_role=agent
+192.168.168.42 mesos_role=agent
 #172.18.91.142 mesos_role=agent
 #[docker]
 #[elasticsearch]

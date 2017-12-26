@@ -6,10 +6,15 @@ Requires=network.target
 Type=simple
 WorkingDirectory=/usr/share/marathon
 EnvironmentFile=/etc/default/marathon
-{% if MARATH_ha is defined %}
-ExecStart=/usr/share/marathon/bin/marathon
+{% if MARATH_mesos_authentication_principal is defined %}
+Environment=SEC_OPTIONS='--mesos_authentication'
 {% else %}
-ExecStart=/usr/share/marathon/bin/marathon --disable_ha
+Environment=SEC_OPTIONS='--disable_mesos_authentication'
+{%endif%}
+{% if MARATH_ha is defined %}
+ExecStart=/usr/share/marathon/bin/marathon $SEC_OPTIONS
+{% else %}
+ExecStart=/usr/share/marathon/bin/marathon $SEC_OPTIONS --disable_ha
 {% endif %}
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always

@@ -3,9 +3,9 @@
   gather_facts: yes
   vars: 
 
-#    MARATH_mesos_authentication_principal:
-#    MARATH_mesos_authentication_secret:
-#    MARATH_http_port: 8080
+#    MARATH_mesos_authentication_principal: fmuser
+#    MARATH_mesos_authentication_secret: fmpass
+#    MARATH_http_port: 8888
 #    MARATH_http_credentials: webuser:webpass
 #    MARATH_ha: true
 #    MESOS_zk: zk://192.168.168.41:2181,192.168.168.42:2181,192.168.168.43:2181/mesos 
