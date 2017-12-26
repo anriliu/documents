@@ -13,9 +13,9 @@
      state: present
 - name: install mesos-1.4.1
   yum: name=mesos-1.4.1 state=latest
-#- name: install docker-ce
-#  yum: name=docker-ce state=present
-#  notify: start docker
+- name: install docker-ce
+  yum: name=docker-ce state=present
+  notify: start docker
 - name: copy init script for centos7
   copy:
     src: mesos-{{mesos_role}}.service

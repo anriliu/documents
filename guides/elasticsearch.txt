@@ -11,7 +11,19 @@ discovery.zen.ping.unicast.hosts: 192.168.168.21:32701  #cluster peer ip and por
 cluster.name=: mynewclustername   #cluster name
 xpack.security.enabled: false #disable security
 discovery.zen.minimum_master_nodes: 1
-network.host: 0.0.0.0
+network.bind_host: 127.0.0.1  #this is for http api port
+transport.bind_host: 0.0.0.0  #this is for communication between nodes within cluster
+cluster中的任何一个node接收http请求后，如果数据不在本地，就会通过transport module来和其它node沟通获取数据。
+一个node可以作为一个或者几个角色同时存在cluster中,默认都是true,在大规模集群上最好是分开:
+node.master: true #用来参加master选举, master is responsible for creating or deleting an index, tracking which nodes are part of the cluster, and deciding which shards to allocate to which nodes.
+node.data: true  #用来保存数据
+node.ingest: true #用来产生index之前预处理文档
+node.tribe #在elasticsearch7会被取消，可以用cross cluster search 代替
+
+search.remote.connect: false  #Disable cross-cluster search (enabled by default).
+所有role 的node都可以作为coordinating nodes这一功能是不能关闭的.
+Requests like search requests or bulk-indexing requests may involve data held on different data nodes.A search request, for example, is executed in two phases which are coordinated by the node which receives the client request — the coordinating node.
+In the scatter phase, the coordinating node forwards the request to the data nodes which hold the data. Each data node executes the request locally and returns its results to the coordinating node. In the gather phase, the coordinating node reduces each data node’s results into a single global resultset.
 
 View Cluster status:
 curl -XGET "192.168.1.101:9200/_cat/heath?v"

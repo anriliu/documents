@@ -5,6 +5,7 @@
      elasticsearch: 
           version: 6.1.0
           clustername: thanksgiving
+          heapsize: 1g
   roles:
     - {role: elasticsearch} 
   

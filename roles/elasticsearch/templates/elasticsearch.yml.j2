@@ -100,4 +100,6 @@ gateway.recover_after_nodes:  {{(groups['elasticsearch']|length)  - 1 }}
 # Require explicit names when deleting indices:
 #
 #action.destructive_requires_name: true
+node.name: ${HOSTNAME}
+
 xpack.security.enabled: false

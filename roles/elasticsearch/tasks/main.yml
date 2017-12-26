@@ -4,6 +4,16 @@
 - name: install elasticsearch server
   yum: name=elasticsearch-{{elasticsearch.version}} state=present
   notify: restart elasticsearch
+- name: set java heap max size
+  lineinfile:
+    path: /etc/elasticsearch/jvm.options 
+    regexp: '^-{{item}}'
+    line: '-{{item}}{{elasticsearch.heapsize}}'
+  with_items:
+    - Xms
+    - Xmx
+  when: elasticsearch.heapsize is defined
+  notify: restart elasticsearch
 - name: check x-pack plugin folder
   stat: path=/usr/share/elasticsearch/plugins/x-pack/
   register: xpack

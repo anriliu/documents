@@ -58,9 +58,9 @@
 192.168.168.41 mesos_role=master
 192.168.168.42 mesos_role=agent
 #172.18.91.142 mesos_role=agent
-#[docker]
-#[elasticsearch]
-#192.168.168.42
+[docker]
+[elasticsearch]
+192.168.168.42
 #192.168.168.41
 #192.168.168.43
 #[kibana]
