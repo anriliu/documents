@@ -8,7 +8,7 @@ yum -y install --enablerepo=mesosphere mesos
 master需要开启5050端口，slave开启5051端口
 mesos-master --hostname=172.18.91.139 --ip=172.18.91.139 --hostname_lookup=false --work_dir=/var/lib/mesos/ --log_dir=/var/log/mesos/
 mesos-agent --master=172.18.91.139:5050 --containerizers=docker,mesos --work_dir=/var/lib/mesos-slave --switch_user=false --hostname_lookup=false --log_dir=/var/log/mesos/ --resources='cpus(*):2;mem(*):1000;ports(*):[1000-65535];disk(*):65526'
-默认disk是所有的空余disk,ports是31000-32000
+默认disk是所有的空余disk,ports是31000-32000,ports resources在创建docker做 port mapping的时候需要用到
 
 mesos can also use environment variable MESOS_OPTION_NAME as it's option
 
