@@ -24,7 +24,7 @@ marathon can also use environment variable MARATHON_OPTION_NAME as it's option
 mesos（marathon）启动一个docker overlay network的container,只需要将docker的network选择为“BRIDGE”然后将自定义docker参数的值设置为“{“key”: “net”, “value”: “your-overlay-network”}”即可,这是因为docker run的命令航只会接收最后一个--network 参数
 
 http://172.18.91.139:8080/v2/queue  查看all the tasks queued up or waiting to be scheduled
-curl -H "Accept: text/event-stream"  <MARATHON_HOST>:<MARATHON_PORT>/v2/events #检查
+curl -H "Accept: text/event-stream"  <MARATHON_HOST>:<MARATHON_PORT>/v2/events #订阅marathon上all API requests and scaling events
 
 
 
