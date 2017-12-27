@@ -42,3 +42,7 @@ volume-nocopy
 docker service create --mount 'type=volume,src=test,volume-driver=local,dst=/data/,volume-nocopy=true,volume-opt=type=nfs,volume-opt=device=:/nfs/test,volume-opt=o=addr=nfs.my.corporate.network' --name test --entrypoint=ls volume:defined-with-copy /data/
 
 
+
+cmd
+entrypoint
+docker run --entrypoint /bin/bash image_name -c cmd #用来替换image默认的entrypoint 并执行自己想要的命令，注意，image_name后面的内容会直接传到container不做修改，所以不能随意加引号。

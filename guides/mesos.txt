@@ -12,6 +12,9 @@ mesos-agent --master=172.18.91.139:5050 --containerizers=docker,mesos --work_dir
 
 mesos can also use environment variable MESOS_OPTION_NAME as it's option
 
+http://172.18.91.139:5050/slaves 查看所有slave的信息
+curl -XPOST http://172.18.91.139:5050/teardown -d 'frameworkId=0164eece-8f5c-4f9b-963e-b452facf036c-0205' #删除一个正在运行的firmwork并删除所有与之相关的tasks
+
 to install marathon
 yum -y install --enablerepo=mesosphere  marathon
 default marathon need zookeeper to store data and ha election if you only have one host then you can run marathon with below options:
@@ -19,3 +22,5 @@ default marathon need zookeeper to store data and ha election if you only have o
 
 marathon can also use environment variable MARATHON_OPTION_NAME as it's option
 mesos（marathon）启动一个docker overlay network的container,只需要将docker的network选择为“BRIDGE”然后将自定义docker参数的值设置为“{“key”: “net”, “value”: “your-overlay-network”}”即可,这是因为docker run的命令航只会接收最后一个--network 参数
+
+http://172.18.91.139:8080/v2/queue  查看all the tasks queued up or waiting to be scheduled

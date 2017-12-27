@@ -1,3 +1,5 @@
 ---
 - name: start marathon
   service: name=marathon state=restarted enabled=yes daemon-reload=yes
+- name: restart rsyslog
+  service: name=rsyslog state=restarted enabled=yes

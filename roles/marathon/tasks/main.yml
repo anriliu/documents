@@ -19,3 +19,6 @@
       src: marathon.j2
       dest: /etc/default/marathon
   notify: start marathon
+- name: copy marathon log file rule for rsyslog
+  copy: src=marathon.conf dest=/etc/rsyslog.d/marathon.conf
+  notify: restart rsyslog
