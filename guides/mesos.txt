@@ -24,3 +24,19 @@ marathon can also use environment variable MARATHON_OPTION_NAME as it's option
 mesos（marathon）启动一个docker overlay network的container,只需要将docker的network选择为“BRIDGE”然后将自定义docker参数的值设置为“{“key”: “net”, “value”: “your-overlay-network”}”即可,这是因为docker run的命令航只会接收最后一个--network 参数
 
 http://172.18.91.139:8080/v2/queue  查看all the tasks queued up or waiting to be scheduled
+curl -H "Accept: text/event-stream"  <MARATHON_HOST>:<MARATHON_PORT>/v2/events #检查
+
+
+
+port-mapping:
+A port-mapping declares a container-port for an application, possibly linking that container-port to a host-port and service-port. Marathon communicates container-port/host-port links (aka “mappings”) to Mesos when launching instances of the application. Port-mappings are used with both container and container/bridge networking. Marathon ignores the value of requirePorts when interpreting a port-mapping.
+The special containerPort value of 0 tells Marathon to internally assign the (eventually) allocated host-port to containerPort.
+The special hostPort value of 0 tells Marathon to select any host-port from a Mesos resource offer.
+The special servicePort value of 0 tells Marathon to select any service-port from the configured service-port range.
+在marathon-lb和mesos slave运行在相同的机器时，最好是设置hostPort=0这样就可以避免端口冲突
+
+
+
+
+Marathon-lb is a tool for managing HAProxy, by consuming Marathon's app state 
+docker run -e PORTS=9090 mesosphere/marathon-lb sse  --marathon http://localhost:8080 --auth-credentials=admin:password --ssl-certs /etc/ssl/site1.co,/etc/ssl/site2.co --health-check --strict-mode
