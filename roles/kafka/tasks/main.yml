@@ -1,0 +1,32 @@
+---
+- name: check active file status
+  stat: path=/opt/kafka_2.11-1.0.0/
+  register: kafkpath
+- name: download activemq-5.15 file
+  unarchive:
+    src: http://apache.claz.org/kafka/1.0.0/kafka_2.11-1.0.0.tgz
+    dest: /opt/
+    remote_src: True
+    owner: nobody
+    group: nobody
+  when: kafkpath.stat.islnk is not defined
+- name: create link for root folder
+  file: state=link src=/opt/kafka_2.11-1.0.0 dest=/opt/kafka
+- name: copy systemd script
+  copy:
+    src: kafka.service
+    dest: /etc/systemd/system/
+    mode: 0755
+  notify: start kafka
+- name: create data dir
+  file: state=directory path={{ item }} owner=nobody group=nobody
+  with_items:
+    - /opt/kafka/data
+- name: install local zookeeper for testing
+  shell: /opt/kafka/bin/zookeeper-server-start.sh -daemon config/zookeeper.properties
+  args:
+     chdir: /opt/kafka/
+  when: kafka_zk is not defined
+- name: generate server.properties
+  template: src=server.properties.j2 dest=/opt/kafka/config/server.properties owner=nobody group=nobody
+  notify: start kafka

@@ -58,6 +58,7 @@
 #192.168.168.41 mesos_role=master
 #192.168.168.42 mesos_role=agent agent_resouces=cpus(*):2;mem(*):2000;ports(*):[1000-65535]
 #172.18.91.142 mesos_role=agent  agent_resouces=cpus(*):2;mem(*):2000;ports(*):[1000-65535]
+#172.18.91.140 mesos_role=agent  agent_resouces=cpus(*):2;mem(*):13312;ports(*):[1112-1113,8001-8002,33000-34000]
 [docker]
 [elasticsearch]
 192.168.168.42
@@ -66,4 +67,6 @@
 #[kibana]
 #192.168.168.42
 [marathon]
-192.168.168.42
+#192.168.168.42
+[kafka]
+192.168.168.44 broker_id=1

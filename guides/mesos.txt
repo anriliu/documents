@@ -15,6 +15,22 @@ mesos can also use environment variable MESOS_OPTION_NAME as it's option
 http://172.18.91.139:5050/slaves 查看所有slave的信息
 curl -XPOST http://172.18.91.139:5050/teardown -d 'frameworkId=0164eece-8f5c-4f9b-963e-b452facf036c-0205' #删除一个正在运行的firmwork并删除所有与之相关的tasks
 
+health check 可以设置为Mesos-level 或者 Marathon-level
+Marathon-level 的health check都是在marathon上执行的
+Mesos-level health check是在运行task的mesos agent上执行的,所以更合适，它有一下几种类型:
+MESOS_HTTP, MESOS_HTTPS, MESOS_TCP, and COMMAND
+可以通过portIndex和port来设置health check的端口，如果不设置默认是portIndex 0，即是环境变了PORT0的值
+{
+  "path": "/api/health",
+  "port": 8080,
+  "protocol": "MESOS_HTTP",
+  "gracePeriodSeconds": 300,
+  "intervalSeconds": 60,
+  "timeoutSeconds": 20,
+  "maxConsecutiveFailures": 3
+}
+
+
 to install marathon
 yum -y install --enablerepo=mesosphere  marathon
 default marathon need zookeeper to store data and ha election if you only have one host then you can run marathon with below options:
@@ -32,7 +48,7 @@ port-mapping:
 A port-mapping declares a container-port for an application, possibly linking that container-port to a host-port and service-port. Marathon communicates container-port/host-port links (aka “mappings”) to Mesos when launching instances of the application. Port-mappings are used with both container and container/bridge networking. Marathon ignores the value of requirePorts when interpreting a port-mapping.
 The special containerPort value of 0 tells Marathon to internally assign the (eventually) allocated host-port to containerPort.
 The special hostPort value of 0 tells Marathon to select any host-port from a Mesos resource offer.
-The special servicePort value of 0 tells Marathon to select any service-port from the configured service-port range.
+The special servicePort value of 0 tells Marathon to select any service-port from the configured service-port range.#will be used by marathon-lb listening
 在marathon-lb和mesos slave运行在相同的机器时，最好是设置hostPort=0这样就可以避免端口冲突
 
 
