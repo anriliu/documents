@@ -19,7 +19,7 @@ health check 可以设置为Mesos-level 或者 Marathon-level
 Marathon-level 的health check都是在marathon上执行的
 Mesos-level health check是在运行task的mesos agent上执行的,所以更合适，它有一下几种类型:
 MESOS_HTTP, MESOS_HTTPS, MESOS_TCP, and COMMAND
-可以通过portIndex和port来设置health check的端口，如果不设置默认是portIndex 0，即是环境变了PORT0的值
+可以通过portIndex和port来设置health check的端口，如果不设置默认是portIndex 0，即是环境变量PORT0的值
 {
   "path": "/api/health",
   "port": 8080,
@@ -54,5 +54,15 @@ The special servicePort value of 0 tells Marathon to select any service-port fro
 
 
 
-Marathon-lb is a tool for managing HAProxy, by consuming Marathon's app state 
-docker run -e PORTS=9090 mesosphere/marathon-lb sse  --marathon http://localhost:8080 --auth-credentials=admin:password --ssl-certs /etc/ssl/site1.co,/etc/ssl/site2.co --health-check --strict-mode
+Marathon-lb is a tool for managing HAProxy, by consuming Marathon's app state and it can do teamplating by reading marathon app's labels
+docker run -e PORTS=9090 mesosphere/marathon-lb sse  --marathon http://localhost:8080 --auth-credentials=admin:password --ssl-certs /etc/ssl/site1.co,/etc/ssl/site2.co --health-check --strict-mode --group ha-proxy
+--group 定义了marathon 上只有存在label为HAPROXY_GROUP=ha-proxy的app才会被此marathon-lb来expose
+下面使一些定义到marathon app 的label上来做template haproxy配置的label(如果需要定义多个都可以通过在label name中间加上n来实现,n对应的是service port index marathon-lb会在内部的haproxy创建于service port对应的监听):
+可以同时定义多个HAPROXY_{n}_GROUP label来达到一个app被不同marathon-lb expose的目的。
+HAPROXY_{n}_VHOST 标签是用来创建virtual host的，vhost默认除了会被expose到servierport还会被额外expose on ports 80 and 443
+HAPROXY_{n}_PORT 可以用来覆盖app定义的service port
+
+
+You can access the HAProxy statistics via :9090/haproxy?stats, and you can retrieve the current HAProxy config from the :9090/_haproxy_getconfig endpoint.
+
+
