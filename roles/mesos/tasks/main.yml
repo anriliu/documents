@@ -36,9 +36,13 @@
       mode: 0600
   when: MESOS_authenticate_http is defined and mesos_role == "agent"
   notify: start mesos-{{mesos_role}}
+- name: copy over docker register file
+  copy: 
+    src: /opt/docker.tar.gz 
+    dest: /etc/docker.tar.gz
+  when: mesos_role == "agent"
 - name: copy over configuration file
   template:
       src: "{{mesos_role}}.j2"
       dest: /etc/mesos-{{mesos_role}}.env
   notify: start mesos-{{mesos_role}}
-  tags: copyfile
