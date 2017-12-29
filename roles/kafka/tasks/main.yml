@@ -2,13 +2,11 @@
 - name: check active file status
   stat: path=/opt/kafka_2.11-1.0.0/
   register: kafkpath
-- name: download activemq-5.15 file
+- name: download kafka_2.11 file
   unarchive:
     src: http://apache.claz.org/kafka/1.0.0/kafka_2.11-1.0.0.tgz
     dest: /opt/
     remote_src: True
-    owner: nobody
-    group: nobody
   when: kafkpath.stat.islnk is not defined
 - name: create link for root folder
   file: state=link src=/opt/kafka_2.11-1.0.0 dest=/opt/kafka
@@ -22,11 +20,15 @@
   file: state=directory path={{ item }} owner=nobody group=nobody
   with_items:
     - /opt/kafka/data
+- name: check local zookeeper status
+  shell: ss -ntpl src :2181|awk '{print $4}'|tail -1|tr -d ':'
+  when: kafka_zk is not defined
+  register: local_zk
 - name: install local zookeeper for testing
   shell: /opt/kafka/bin/zookeeper-server-start.sh -daemon config/zookeeper.properties
   args:
      chdir: /opt/kafka/
-  when: kafka_zk is not defined
+  when: kafka_zk is not defined and local_zk.stdout != '2181'
 - name: generate server.properties
-  template: src=server.properties.j2 dest=/opt/kafka/config/server.properties owner=nobody group=nobody
+  template: src=server.properties.j2 dest=/opt/kafka/config/server.properties 
   notify: start kafka

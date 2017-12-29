@@ -35,9 +35,9 @@
 #172.18.91.139
 #172.18.91.153
 [zookeeper]
-#192.168.168.41 ID=1
-#192.168.168.42 ID=2
-#192.168.168.43 ID=3
+192.168.168.41 
+192.168.168.42
+192.168.168.43
 [activemq]
 #192.168.168.44 active_hostname=192.168.168.44
 #192.168.168.41 active_hostname=192.168.168.41
@@ -57,11 +57,11 @@
 [mesos]
 #192.168.168.41 mesos_role=master
 #192.168.168.42 mesos_role=agent agent_resouces=cpus(*):2;mem(*):2000;ports(*):[1000-65535]
-#172.18.91.142 mesos_role=agent  agent_resouces=cpus(*):2;mem(*):2000;ports(*):[1000-65535]
-#172.18.91.140 mesos_role=agent  agent_resouces=cpus(*):2;mem(*):13312;ports(*):[1112-1113,8001-8002,33000-34000]
+#172.18.91.155 mesos_role=agent  agent_resouces=cpus(*):2;mem(*):13312;ports(*):[1112-1113,8001-8002,33000-34000]
+#172.18.91.156 mesos_role=agent  agent_resouces=cpus(*):2;mem(*):13312;ports(*):[1112-1113,8001-8002,33000-34000]
 [docker]
 [elasticsearch]
-192.168.168.42
+#192.168.168.42
 #192.168.168.41
 #192.168.168.43
 #[kibana]
@@ -69,4 +69,6 @@
 [marathon]
 #192.168.168.42
 [kafka]
-192.168.168.44 broker_id=1
+#192.168.168.41 
+#192.168.168.42
+#192.168.168.43

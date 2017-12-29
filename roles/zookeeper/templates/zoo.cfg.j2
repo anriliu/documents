@@ -27,6 +27,6 @@ clientPort=2181
 # Purge task interval in hours
 # Set to "0" to disable auto purge feature
 #autopurge.purgeInterval=1
-{% for user in ZKPS %}
-server.{{ user.ID}}={{user.IP}}:2881:3881
+{% for host in groups['zookeeper'] %}
+server.{{host.replace('.','')}}={{host}}:2881:3881
 {% endfor %}
