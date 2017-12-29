@@ -12,4 +12,4 @@
   roles: 
     - {role: mesos}
 #- import_playbook: zookeeper.yml
-#  when: MESOS_CLUSTER is defined and MESOS_zk is defined
+#  when: MESOS_cluster is defined and MESOS_zk is defined
