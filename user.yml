@@ -1,7 +1,7 @@
 ---
 ###ansible-playbook --limit 10.0.1.151 user.yml --tags adduser --extra-vars 'ansible_ssh_pass=Global username=zhangshan upassword=123456'
 ###ansible-playbook user.yml --limit pfingo --tags chpasswd -e "ansible_ssh_pass=Global username=root upassword=GlobalPf"
-- hosts: all
+- hosts: common
   remote_user: root
   gather_facts: no
   tasks:

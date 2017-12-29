@@ -41,3 +41,4 @@
       src: "{{mesos_role}}.j2"
       dest: /etc/mesos-{{mesos_role}}.env
   notify: start mesos-{{mesos_role}}
+  tags: copyfile

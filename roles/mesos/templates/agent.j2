@@ -10,7 +10,11 @@ MESOS_log_dir=/var/log/mesos
 MESOS_logging_level=INFO
 MESOS_hostname_lookup=false
 MESOS_containerizers=docker,mesos
+{%if agent_resouces is not defined%}
+MESOS_resources=mem(*):{{ansible_memtotal_mb * 0.9}};cpus(*):{{ansible_processor_vcpus}}
+{%else%}
 MESOS_resources={{agent_resouces}}
+{%endif%}
 MESOS_switch_user=false
 {% if MESOS_authenticate_http is defined %}
 MESOS_http_credentials=file:///etc/mesos-slave/credentials
