@@ -3,7 +3,7 @@ leaderServes=true  #Leader accepts client connections. Default value is "yes".
 dataDir=/var/lib/zookeeper
 dataLogDir=/var/log/zookeeper
 server.1=172.18.91.143:2881:3881 #server.x is the server id which should be same as myid file,The first port followers use to connect to the leader, and the second is for leader election.
-server.2=172.18.91.144:2881:3881
+server.2=172.18.91.144:2881:3881 #2881这个端口用来集群内部进行数据交换，所有的follower都会连接到leader的这个端口只有leader会监听这个端口,3881是用来选举leader的时候用的。
 server.3=172.18.91.145:2881:3881
 
 other useful configuration options:
