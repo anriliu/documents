@@ -42,7 +42,27 @@ mesos（marathon）启动一个docker overlay network的container,只需要将do
 http://172.18.91.139:8080/v2/queue  查看all the tasks queued up or waiting to be scheduled
 curl -H "Accept: text/event-stream"  <MARATHON_HOST>:<MARATHON_PORT>/v2/events #订阅marathon上all API requests and scaling events
 
-
+to use Private Docker Registry you must do below:
+1.docker login some.docker.host.com
+2.cd ~&&tar -czf docker.tar.gz .docker
+3.cp docker.tar.gz /etc/  on all hosts which you will start you app on
+4.start the app wit uris parmeter:
+{  
+  "id": "/some/name/or/id",
+  "cpus": 1,
+  "mem": 1024,
+  "instances": 1,
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "some.docker.host.com/namespace/repo",
+      "network": "HOST"
+    }
+  },
+  "uris":  [
+      "file:///etc/docker.tar.gz"
+  ]
+}
 
 port-mapping:
 A port-mapping declares a container-port for an application, possibly linking that container-port to a host-port and service-port. Marathon communicates container-port/host-port links (aka “mappings”) to Mesos when launching instances of the application. Port-mappings are used with both container and container/bridge networking. Marathon ignores the value of requirePorts when interpreting a port-mapping.
@@ -61,7 +81,6 @@ docker run -e PORTS=9090 mesosphere/marathon-lb sse  --marathon http://localhost
 可以同时定义多个HAPROXY_{n}_GROUP label来达到一个app被不同marathon-lb expose的目的。
 HAPROXY_{n}_VHOST 标签是用来创建virtual host的，vhost默认除了会被expose到servierport还会被额外expose on ports 80 and 443
 HAPROXY_{n}_PORT 可以用来覆盖app定义的service port
-
 
 You can access the HAProxy statistics via :9090/haproxy?stats, and you can retrieve the current HAProxy config from the :9090/_haproxy_getconfig endpoint.
 
