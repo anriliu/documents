@@ -30,8 +30,24 @@ MESOS_HTTP, MESOS_HTTPS, MESOS_TCP, and COMMAND
   "maxConsecutiveFailures": 3
 }
 
+ /metrics/snapshot  可以查看mesos的各项指标，可以用来监控，可以根据下面几个指标来做简单的报警：
+master/uptime_secs is low
+The master has restarted.
+master/uptime_secs < 60 for sustained periods of time
+The cluster has a flapping master node.
+master/tasks_lost is increasing rapidly
+Tasks in the cluster are disappearing. Possible causes include hardware failures, bugs in one of the frameworks, or bugs in Mesos.
+master/slaves_active is low
+Agents are having trouble connecting to the master.
+master/cpus_percent > 0.9 for sustained periods of time
+Cluster CPU utilization is close to capacity.
+master/mem_percent > 0.9 for sustained periods of time
+Cluster memory utilization is close to capacity.
+master/elected is 0 for sustained periods of time
+No master is currently elected.
 
-to install marathon
+
+To install marathon
 yum -y install --enablerepo=mesosphere  marathon
 default marathon need zookeeper to store data and ha election if you only have one host then you can run marathon with below options:
 --internal_store_backend mem --disable_ha
