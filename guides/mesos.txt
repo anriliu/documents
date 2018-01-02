@@ -85,3 +85,10 @@ HAPROXY_{n}_PORT 可以用来覆盖app定义的service port
 You can access the HAProxy statistics via :9090/haproxy?stats, and you can retrieve the current HAProxy config from the :9090/_haproxy_getconfig endpoint.
 
 
+
+mesos zabbix monitoring script:
+
+#!/bin/env bash
+[ -n $2 ]||{ echo "uasge: ./mesos meosip key"&&exit 255 ; }
+
+curl http://$1/metrics/snapshot -s |jq .[\"master/$2\"]

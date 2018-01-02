@@ -27,3 +27,10 @@ specified  by  the command (see REDIRECTION below) If |& is used, the standard e
 command [-pVv] command [arg ...]
 Run  command  with  args suppressing the normal shell function lookup. Only builtin commands or commands found in the PATH are executed. 
 也可以用来在默认PATH路径下查找命令，失败返回127
+
+
+命令分组:
+1.()
+会新建子shell来执行分组中的命令
+2.{ ; }
+在当前shell中执行花括号中的命令，注意花括号必须和中间命令用空格分隔开，分组命令的最后必须有分号或者是换行符
