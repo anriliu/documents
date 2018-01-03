@@ -1,0 +1,6 @@
+yum install ipa-server
+hostnamectl set-hostname server.example.com
+ipa-server-install  --ds-password=DM_PASSWORD  --admin-password=ADMIN_PASSWORD  --ip-address=  --domain=   --hostname=   --no-host-dns 
+
+kinit admin
+ipa user-find  username

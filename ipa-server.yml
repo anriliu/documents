@@ -1,0 +1,12 @@
+---
+- hosts: ipa
+  gather_facts: no
+  vars_prompt:
+    - name: "ipa_domain"
+      prompt: "what is your ipa domain?"
+    - name: "ipa_admin_pass"
+      prompt: "what is your Password for IPA administrator -?"
+    - name: "ipa_ldap_pass"
+      prompt: "what is your Password for Directory Manager?"
+  roles: 
+    - {role: ipa}
