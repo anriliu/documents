@@ -1,12 +1,21 @@
 ---
 - hosts: ipa
-  gather_facts: no
+  gather_facts: yes
+  vars: 
+    cache_credentials: True
+    account_cache_expiration: 7   
+    ldap_sudo_smart_refresh_interval: 60
+    ldap_sudo_full_refresh_interval: 3600
+    ipa_server_ip: 192.168.168.42
   vars_prompt:
     - name: "ipa_domain"
       prompt: "what is your ipa domain?"
+      private: no
     - name: "ipa_admin_pass"
-      prompt: "what is your Password for IPA administrator -?"
-    - name: "ipa_ldap_pass"
+      prompt: "what is your Password for IPA administrator?"
+      private: no
+    - name: "ipa_dm_pass"
       prompt: "what is your Password for Directory Manager?"
+      private: no
   roles: 
     - {role: ipa}

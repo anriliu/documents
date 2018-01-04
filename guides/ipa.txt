@@ -1,6 +1,25 @@
 yum install ipa-server
-hostnamectl set-hostname server.example.com
-ipa-server-install  --ds-password=DM_PASSWORD  --admin-password=ADMIN_PASSWORD  --ip-address=  --domain=   --hostname=   --no-host-dns 
+hostnamectl set-hostname ipa.server.lan
+ipa-server-install --unattended --ds-password=DM_PASSWORD  --admin-password=ADMIN_PASSWORD --ip-address=192.168.168.11 --domain=ipa.server.lan --realm=IPA.SERVER.LAN --no-host-dns  --no-ntp
 
 kinit admin
-ipa user-find  username
+ipa user-find  admin
+
+you can change the admin username here by:
+ipa user-mod --rename=perferedname  admin
+
+
+ipa-client-install --server ipa.server.lan --domain  ipa.server.lan --no-ntp --mkhomedir    --principal=admin  --password=ADMIN_PASSWORD --unattended 
+
+
+sssd configuration :
+[domain/*]
+cache_credentials=true  #It is possible to enable offline credentials caching, which stores credentials (after successful login) as part of the user account in the SSSD cache.
+account_cache_expiration=7 # sets the number of days after a successful login that the entire user account entry is removed from the SSSD cache.
+entry_cache_timeout=14400    #sets a validity period, in seconds, for all entries stored in the cache before SSSD requests updated information from the identity provider. The default time is 5400 
+ldap_sudo_smart_refresh_interval= 60 #How many seconds SSSD will wait between executing a full refresh of sudo rules Default: 21600 (6 hours)
+ldap_sudo_full_refresh_interval=3600 #How many seconds SSSD has to wait before executing a smart refresh of sudo rules (which downloads all rules that have USN higher than the highest USN of cached rules).Default: 900 (15 minutes)
+[pam]
+offline_credentials_expiration    #sets the number of days after a successful login that a single credentials entry for a user is preserved in cache. Setting this to zero (0) means that entries are kept forever.
+
+cached credentials are in credentials /var/lib/sss/db/

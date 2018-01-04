@@ -1,0 +1,33 @@
+---
+- name: end tasks if it's not centos7
+  fail: msg='ensure you are running this on centos7 system'
+  when: ansible_distribution_major_version != "7"
+- name: install ipa-4.5.0 packages
+  yum: name={{ipa_role}}-4.5.0 state=present
+- name: initialize ipa-server programs
+  shell: ipa-server-install --unattended --ds-password={{ipa_dm_pass}}  --admin-password={{ipa_admin_pass}} --ip-address={{ansible_ssh_host}} --domain={{ipa_domain}} --realm={{ipa_domain}} --no-host-dns  --no-ntp --no-hbac-allow  
+  when: ipa_role == "ipa-server"
+- name: add dns record to client hosts
+  lineinfile:
+    path: /etc/hosts
+    state: present
+    regexp: '^{{ipa_server_ip}}'
+    line:  '{{ipa_server_ip}} {{ipa_domain}}'
+  when: ipa_role == "ipa-client"
+- name: initialize ipa-client programs
+  shell: ipa-client-install --server {{ipa_domain}}  --domain  {{ipa_domain}} --no-ntp --mkhomedir    --principal=admin  --password={{ipa_admin_pass}} --unattended 
+  when: ipa_role == "ipa-client"
+- name: change sssd cache credentials parmaters
+  lineinfile:
+    path:  /etc/sssd/sssd.conf
+    state: present
+    regexp: '^{{item.name}}'
+    insertafter: '^\[domain'
+    line:  '{{item.name}} = {{item.value}}'
+  with_items:
+    - {name: account_cache_expiration, value: "{{account_cache_expiration}}" }
+    - {name: cache_credentials, value: "{{cache_credentials}}" }
+    - {name: ldap_sudo_smart_refresh_interval, value: "{{ldap_sudo_smart_refresh_interval}}" }
+    - {name: ldap_sudo_full_refresh_interval, value: "{{ldap_sudo_full_refresh_interval}}" }
+  when: ipa_role == "ipa-client"
+  notify: restart sssd
